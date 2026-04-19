@@ -1,8 +1,9 @@
 #pragma once
 #include <string>
+#include <iostream>
 
 class Produs {
-private:
+protected:
     int id;
     std::string nume;
     int cantitate;
@@ -11,6 +12,8 @@ private:
 
 public:
     Produs(int id, std::string nume, int cantitate, double pret, int pragAlerta);
+    
+    virtual ~Produs() = default; 
 
     int getId() const;
     std::string getNume() const;
@@ -22,5 +25,7 @@ public:
     void setPret(double nouPret);
 
     Produs& operator+=(int adaugaCantitate);
-    Produs& operator-=(int scadeCantitate); 
+    Produs& operator-=(int scadeCantitate);
+
+    virtual void afiseazaDetalii() const; 
 };

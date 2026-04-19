@@ -1,35 +1,83 @@
 #include <iostream>
 #include "Depozit.h"
+#include "Tranzactie.h"
+
+void afiseazaMeniu() {
+    std::cout << "\n=== SISTEM GESTIUNE DEPOZIT ===\n";
+    std::cout << "1. Adauga Produs Nou\n";
+    std::cout << "2. Afiseaza Stoc Complet\n";
+    std::cout << "3. Vanzare (Eliminare automata la 0)\n";
+    std::cout << "4. Aprovizionare (Intrare Stoc)\n";
+    std::cout << "5. Raport Alerte (Stoc Critic)\n";
+    std::cout << "0. Iesire\n";
+    std::cout << "Selectati optiunea: ";
+}
+
+void optiuneAdaugare(Depozit& depozit) {
+    int id, cant, prag; 
+    double pret; 
+    std::string nume;
+    
+    std::cout << "ID: "; std::cin >> id;
+    std::cout << "Nume: "; std::cin >> nume;
+    std::cout << "Cantitate: "; std::cin >> cant;
+    std::cout << "Pret: "; std::cin >> pret;
+    std::cout << "Prag Alerta: "; std::cin >> prag;
+
+    depozit.adaugaProdus(Produs(id, nume, cant, pret, prag));
+}
+
+void optiuneAfisare(const Depozit& depozit) {
+    depozit.afiseazaToateProdusele();
+}
+
+void optiuneVanzare(Depozit& depozit) {
+    int id, cant;
+    std::cout << "ID Produs de vandut: "; std::cin >> id;
+    std::cout << "Cantitate de vandut: "; std::cin >> cant;
+    
+    depozit.vindeProdus(id, cant); 
+    Tranzactie<std::string>(id, cant, "VANZARE").afiseazaDetalii();
+}
+
+void optiuneAprovizionare(Depozit& depozit) {
+    int id, cant;
+    std::cout << "ID Produs de aprovizionat: "; std::cin >> id;
+    std::cout << "Cantitate de adaugat: "; std::cin >> cant;
+    
+    depozit.getProdus(id) += cant;
+    Tranzactie<std::string>(id, cant, "APROVIZIONARE").afiseazaDetalii();
+}
+
+void optiuneRapoarte(const Depozit& depozit) {
+    depozit.genereazaRaportAlerta();
+}
 
 int main() {
-    std::cout << "=== INITIALIZARE SISTEM DEPOZIT ===\n\n";    
-    Depozit depozitCentral;
+    Depozit depozit;
+    int optiune;
 
-    try {
-        depozitCentral.adaugaProdus(Produs(101, "Laptop Dell", 50, 3200.50, 10));
-        depozitCentral.adaugaProdus(Produs(102, "Mouse Wireless", 5, 120.0, 15)); 
-        depozitCentral.adaugaProdus(Produs(103, "Tastatura Mecanica", 30, 450.0, 5));
-        
-        std::cout << "\n[Securitate] Incercam adaugarea unui ID duplicat (101)...\n";
-        depozitCentral.adaugaProdus(Produs(101, "Monitor Hacker", 10, 1000.0, 5));
-        
-    } catch (const std::exception& e) {
-        std::cerr << "EXCEPTIE PRINSĂ: " << e.what() << "\n";
+    while (true) {
+        afiseazaMeniu();
+        std::cin >> optiune;
+
+        if (optiune == 0) break;
+
+        try {
+            switch (optiune) {
+                case 1: optiuneAdaugare(depozit);       break;
+                case 2: optiuneAfisare(depozit);        break;
+                case 3: optiuneVanzare(depozit);        break;
+                case 4: optiuneAprovizionare(depozit);  break;
+                case 5: optiuneRapoarte(depozit);       break;
+                default:
+                    std::cout << "Optiune invalida!\n";
+            }
+        } catch (const std::exception& e) {
+            std::cout << "EROARE: " << e.what() << "\n";
+        }
     }
 
-    depozitCentral.afiseazaToateProdusele();
-
-    std::cout << "\n-> Se vand 10 Laptopuri Dell...\n";
-    try {
-        Produs& laptop = depozitCentral.getProdus(101); 
-        laptop -= 10;
-        std::cout << "Vanzare reusita! Noul stoc pentru Laptop: " << laptop.getCantitate() << "\n";
-    } catch (const std::exception& e) {
-        std::cerr << "Eroare la vanzare: " << e.what() << "\n";
-    }
-
-    depozitCentral.genereazaRaportAlerta();
-
-    std::cout << "\n=== INCHIDERE SISTEM ===\n";
+    std::cout << "Aplicatie inchisa.\n";
     return 0;
 }

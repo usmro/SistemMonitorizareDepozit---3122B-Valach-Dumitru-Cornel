@@ -58,3 +58,16 @@ Produs& Depozit::getProdus(int idProdus) {
     }
     throw std::invalid_argument("Eroare: Produsul nu exista!");
 }
+
+void Depozit::vindeProdus(int id, int cantitate) {
+    auto it = stoc.find(id);
+    if (it == stoc.end()) {
+        throw std::invalid_argument("Eroare: Produsul nu exista!");
+    }
+    it->second -= cantitate; 
+
+    if (it->second.getCantitate() == 0) {
+        std::cout << "[INFO] Stoc epuizat. Eliminam '" << it->second.getNume() << "' din depozit.\n";
+        stoc.erase(it);
+    }
+}

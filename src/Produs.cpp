@@ -37,6 +37,13 @@ Produs& Produs::operator-=(int scadeCantitate) {
     return *this;
 }
 
+void Produs::afiseazaDetalii() const {
+    std::cout << "[PRODUS STANDARD] ID: " << id 
+              << " | Nume: " << nume 
+              << " | Stoc: " << cantitate 
+              << " | Pret: " << pret << " RON\n";
+}
+
 int Produs::getId() const { return id; }
 std::string Produs::getNume() const { return nume; }
 int Produs::getCantitate() const { return cantitate; }

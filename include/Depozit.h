@@ -17,4 +17,6 @@ public:
     void genereazaRaportAlerta() const;
 
     Produs& getProdus(int idProdus);
+
+    void vindeProdus(int id, int cantitate);
 };
