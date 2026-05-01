@@ -56,6 +56,9 @@ void optiuneRapoarte(const Depozit& depozit) {
 int main() {
     Depozit depozit;
     int optiune;
+    const std::string FISIER_STOC = "stoc.csv";
+
+    depozit.incarcaDinFisier(FISIER_STOC);
 
     while (true) {
         afiseazaMeniu();
@@ -78,6 +81,7 @@ int main() {
         }
     }
 
+    depozit.salveazaInFisier(FISIER_STOC);
     std::cout << "Aplicatie inchisa.\n";
     return 0;
 }

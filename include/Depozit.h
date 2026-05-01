@@ -19,4 +19,7 @@ public:
     Produs& getProdus(int idProdus);
 
     void vindeProdus(int id, int cantitate);
+
+    void salveazaInFisier(const std::string& numeFisier) const;
+    void incarcaDinFisier(const std::string& numeFisier);
 };

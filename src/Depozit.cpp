@@ -1,5 +1,7 @@
 #include "Depozit.h"
 #include <stdexcept>
+#include <fstream>
+#include <sstream>
 
 void Depozit::adaugaProdus(const Produs& produs) {
     if (stoc.find(produs.getId()) != stoc.end()) {
@@ -70,4 +72,53 @@ void Depozit::vindeProdus(int id, int cantitate) {
         std::cout << "[INFO] Stoc epuizat. Eliminam '" << it->second.getNume() << "' din depozit.\n";
         stoc.erase(it);
     }
+}
+
+void Depozit::salveazaInFisier(const std::string& numeFisier) const {
+    std::ofstream out(numeFisier);
+    if (!out.is_open()) {
+        throw std::runtime_error("Eroare: Nu am putut deschide fisierul pentru salvare!");
+    }
+
+    for (const auto& [id, produs] : stoc) {
+        out << produs.getId() << ","
+            << produs.getNume() << ","
+            << produs.getCantitate() << ","
+            << produs.getPret() << ","
+            << produs.getPragAlerta() << "\n";
+    }
+    
+    out.close();
+    std::cout << "[INFO] Stocul a fost salvat in siguranță în '" << numeFisier << "'.\n";
+}
+
+void Depozit::incarcaDinFisier(const std::string& numeFisier) {
+    std::ifstream in(numeFisier);
+    if (!in.is_open()) {
+        std::cout << "[INFO] Fisierul de stoc nu exista inca. Va fi creat automat la prima salvare.\n";
+        return;
+    }
+
+    std::string linie;
+    while (std::getline(in, linie)) {
+        if (linie.empty()) continue;
+
+        std::stringstream ss(linie);
+        std::string token;
+        
+        int id, cantitate, pragAlerta;
+        double pret;
+        std::string nume;
+
+        std::getline(ss, token, ','); id = std::stoi(token);
+        std::getline(ss, nume, ',');
+        std::getline(ss, token, ','); cantitate = std::stoi(token);
+        std::getline(ss, token, ','); pret = std::stod(token);
+        std::getline(ss, token, ','); pragAlerta = std::stoi(token);
+
+        stoc.insert({id, Produs(id, nume, cantitate, pret, pragAlerta)});
+    }
+    
+    in.close();
+    std::cout << "[INFO] Datele au fost incarcate cu succes din '" << numeFisier << "'.\n";
 }
