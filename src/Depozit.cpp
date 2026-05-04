@@ -27,10 +27,7 @@ void Depozit::afiseazaToateProdusele() const {
     
     std::cout << "\n=== STOC CURENT DEPOZIT ===\n";
     for (const auto& [id, produs] : stoc) {
-        std::cout << "ID: " << id 
-                  << " | Nume: " << produs.getNume() 
-                  << " | Cantitate: " << produs.getCantitate() 
-                  << " | Pret: " << produs.getPret() << " RON\n";
+        std::cout << produs << "\n";
     }
     std::cout << "===========================\n";
 }
@@ -121,4 +118,20 @@ void Depozit::incarcaDinFisier(const std::string& numeFisier) {
     
     in.close();
     std::cout << "[INFO] Datele au fost incarcate cu succes din '" << numeFisier << "'.\n";
+}
+
+void Depozit::cautaProdusDupaNume(const std::string& numeCautat) const {
+    bool gasit = false;
+    std::cout << "\n=== REZULTATE CAUTARE: '" << numeCautat << "' ===\n";
+    
+    for (const auto& [id, produs] : stoc) {
+        if (produs.getNume().find(numeCautat) != std::string::npos) {
+            std::cout << produs << "\n";
+            gasit = true;
+        }
+    }
+    
+    if (!gasit) {
+        std::cout << "[!] Nu s-a gasit niciun produs care sa contina '" << numeCautat << "'.\n";
+    }
 }

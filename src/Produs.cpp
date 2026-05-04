@@ -44,6 +44,14 @@ void Produs::afiseazaDetalii() const {
               << " | Pret: " << pret << " RON\n";
 }
 
+std::ostream& operator<<(std::ostream& os, const Produs& produs) {
+    os << "ID: " << produs.id 
+       << " | Nume: " << produs.nume 
+       << " | Cantitate: " << produs.cantitate 
+       << " | Pret: " << produs.pret << " RON";
+    return os;
+}
+
 int Produs::getId() const { return id; }
 std::string Produs::getNume() const { return nume; }
 int Produs::getCantitate() const { return cantitate; }

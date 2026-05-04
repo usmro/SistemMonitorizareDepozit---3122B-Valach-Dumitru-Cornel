@@ -28,4 +28,6 @@ public:
     Produs& operator-=(int scadeCantitate);
 
     virtual void afiseazaDetalii() const; 
+
+    friend std::ostream& operator<<(std::ostream& os, const Produs& produs);
 };

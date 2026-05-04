@@ -22,4 +22,6 @@ public:
 
     void salveazaInFisier(const std::string& numeFisier) const;
     void incarcaDinFisier(const std::string& numeFisier);
+
+    void cautaProdusDupaNume(const std::string& numeCautat) const;
 };
