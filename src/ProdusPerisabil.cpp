@@ -1,9 +1,12 @@
 #include "ProdusPerisabil.h"
 
-ProdusPerisabil::ProdusPerisabil(int id, std::string nume, int cant, double pret, int prag, std::string dataExp)
-    : Produs(id, nume, cant, pret, prag), dataExpirare(dataExp) {}
+ProdusPerisabil::ProdusPerisabil(int i, std::string n, int c, double p, int pr, int temp, int umiditate) 
+    : Produs(i, n, c, p, pr), tempStocare(temp), umiditateMaxima(umiditate) {}
 
-void ProdusPerisabil::afiseazaDetalii() const {
-    std::cout << "[PERISABIL] ID: " << id << " | Nume: " << nume 
-              << " | Stoc: " << cantitate << " | Expira la: " << dataExpirare << "\n";
+std::string ProdusPerisabil::getTipProdus() const { 
+    return "Perisabil"; 
+}
+
+std::string ProdusPerisabil::getDetaliiSpecifice() const { 
+    return "Temp: " + std::to_string(tempStocare) + "C | Umiditate max: " + std::to_string(umiditateMaxima) + "%"; 
 }

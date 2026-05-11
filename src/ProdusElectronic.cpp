@@ -1,9 +1,12 @@
 #include "ProdusElectronic.h"
 
-ProdusElectronic::ProdusElectronic(int id, std::string nume, int cant, double pret, int prag, int garantie)
-    : Produs(id, nume, cant, pret, prag), luniGarantie(garantie) {}
+ProdusElectronic::ProdusElectronic(int i, std::string n, int c, double p, int pr, int garantie, double tensiune) 
+    : Produs(i, n, c, p, pr), garantieLuni(garantie), tensiuneAlimentare(tensiune) {}
 
-void ProdusElectronic::afiseazaDetalii() const {
-    std::cout << "[ELECTRONIC] ID: " << id << " | Nume: " << nume 
-              << " | Stoc: " << cantitate << " | Garantie: " << luniGarantie << " luni\n";
+std::string ProdusElectronic::getTipProdus() const { 
+    return "Electronic"; 
+}
+
+std::string ProdusElectronic::getDetaliiSpecifice() const { 
+    return "Gar: " + std::to_string(garantieLuni) + " luni | Alim: " + std::to_string((int)tensiuneAlimentare) + "V"; 
 }

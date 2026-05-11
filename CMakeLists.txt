@@ -5,21 +5,50 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-# Spunem compilatorului unde sa gaseasca fisierele .h
-include_directories(include)
+# ==========================================
+# 1. ADUCEM LIBRARIA FTXUI
+# ==========================================
+include(FetchContent)
+FetchContent_Declare(ftxui
+  GIT_REPOSITORY https://github.com/ArthurSonzogni/FTXUI
+  GIT_TAG v5.0.0
+)
+FetchContent_MakeAvailable(ftxui)
 
-# Aplicatia Principala (Cea cu meniu)
-add_executable(depozit_app 
-    src/main.cpp
-    src/Produs.cpp
-    src/ProdusPerisabil.cpp
-    src/ProdusElectronic.cpp 
-    src/Depozit.cpp
+# ==========================================
+# 2. SETARI PROIECT
+# ==========================================
+include_directories(include)
+find_package(SQLite3 REQUIRED)
+# Preluăm automat toate fișierele .cpp care există în folderul src
+file(GLOB SOURCES "src/*.cpp")
+
+# ==========================================
+# 3. EXECUTABILUL PRINCIPAL
+# ==========================================
+add_executable(depozit_app ${SOURCES})
+
+# Legăm corect FTXUI DOAR de executabilul principal
+target_link_libraries(depozit_app PRIVATE 
+    ftxui::screen 
+    ftxui::dom 
+    ftxui::component
+    SQLite::SQLite3
 )
 
-# Aplicatia de Testare (Cea cu assert-uri)
+# ==========================================
+# 4. EXECUTABILUL DE TESTE
+# ==========================================
 add_executable(test_app 
     tests/test_main.cpp
     src/Produs.cpp
+    src/ProdusElectronic.cpp
+    src/ProdusPerisabil.cpp
+    src/ProdusFragil.cpp
+    src/ProdusVoluminos.cpp
+    src/ProdusPericulos.cpp
     src/Depozit.cpp
+    src/DatabaseManager.cpp
 )
+
+target_link_libraries(test_app PRIVATE SQLite::SQLite3)

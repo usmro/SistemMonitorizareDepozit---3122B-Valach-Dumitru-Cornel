@@ -1,59 +1,28 @@
 #include "Produs.h"
-#include <stdexcept>
 
-Produs::Produs(int id, std::string nume, int cantitate, double pret, int pragAlerta)
-    : id(id), nume(nume), cantitate(cantitate), pret(pret), pragAlerta(pragAlerta) {}
+// Implementarea constructorului
+Produs::Produs(int i, std::string n, int c, double p, int pr) 
+    : id(i), nume(n), cantitate(c), pret(p), pragAlerta(pr) {}
 
-void Produs::setCantitate(int nouaCantitate) {
-    if (nouaCantitate < 0) {
-        throw std::invalid_argument("Cantitatea nu poate fi negativa!");
-    }
-    cantitate = nouaCantitate;
+// Implementarea metodelor de bază
+std::string Produs::getTipProdus() const { 
+    return "General"; 
 }
 
-void Produs::setPret(double nouPret) {
-    if (nouPret < 0) {
-        throw std::invalid_argument("Pretul nu poate fi negativ!");
-    }
-    pret = nouPret;
+std::string Produs::getDetaliiSpecifice() const { 
+    return "Manipulare standard"; 
 }
 
-Produs& Produs::operator+=(int adaugaCantitate) {
-    if (adaugaCantitate < 0) {
-        throw std::invalid_argument("Nu poti adauga o cantitate negativa!");
+Produs& Produs::operator+=(int valoare) {
+    if (valoare > 0) {
+        this->cantitate += valoare;
     }
-    this->cantitate += adaugaCantitate;
     return *this;
 }
 
-Produs& Produs::operator-=(int scadeCantitate) {
-    if (scadeCantitate < 0) {
-        throw std::invalid_argument("Nu poti scadea o cantitate negativa!");
+Produs& Produs::operator-=(int valoare) {
+    if (valoare > 0 && this->cantitate >= valoare) {
+        this->cantitate -= valoare;
     }
-    if (this->cantitate - scadeCantitate < 0) {
-        throw std::runtime_error("Eroare: Stoc insuficient pentru vanzare!");
-    }
-    this->cantitate -= scadeCantitate;
     return *this;
 }
-
-void Produs::afiseazaDetalii() const {
-    std::cout << "[PRODUS STANDARD] ID: " << id 
-              << " | Nume: " << nume 
-              << " | Stoc: " << cantitate 
-              << " | Pret: " << pret << " RON\n";
-}
-
-std::ostream& operator<<(std::ostream& os, const Produs& produs) {
-    os << "ID: " << produs.id 
-       << " | Nume: " << produs.nume 
-       << " | Cantitate: " << produs.cantitate 
-       << " | Pret: " << produs.pret << " RON";
-    return os;
-}
-
-int Produs::getId() const { return id; }
-std::string Produs::getNume() const { return nume; }
-int Produs::getCantitate() const { return cantitate; }
-double Produs::getPret() const { return pret; }
-int Produs::getPragAlerta() const { return pragAlerta; }

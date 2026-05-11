@@ -11,23 +11,21 @@ protected:
     int pragAlerta;
 
 public:
-    Produs(int id, std::string nume, int cantitate, double pret, int pragAlerta);
+    // Declarația constructorului
+    Produs(int i, std::string n, int c, double p, int pr);
     
-    virtual ~Produs() = default; 
+    virtual ~Produs() = default;
 
-    int getId() const;
-    std::string getNume() const;
-    int getCantitate() const;
-    double getPret() const;
-    int getPragAlerta() const;
+    // Gettere inline (sunt super rapide, se acceptă în .h)
+    int getId() const { return id; }
+    Produs& operator+=(int valoare);
+    Produs& operator-=(int valoare);
+    std::string getNume() const { return nume; }
+    int getCantitate() const { return cantitate; }
+    double getPret() const { return pret; }
+    int getPragAlerta() const { return pragAlerta; }
 
-    void setCantitate(int nouaCantitate);
-    void setPret(double nouPret);
-
-    Produs& operator+=(int adaugaCantitate);
-    Produs& operator-=(int scadeCantitate);
-
-    virtual void afiseazaDetalii() const; 
-
-    friend std::ostream& operator<<(std::ostream& os, const Produs& produs);
+    // Metode virtuale care vor fi suprascrise
+    virtual std::string getTipProdus() const;
+    virtual std::string getDetaliiSpecifice() const;
 };

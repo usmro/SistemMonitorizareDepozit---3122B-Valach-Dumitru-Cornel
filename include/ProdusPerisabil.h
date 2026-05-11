@@ -3,10 +3,12 @@
 
 class ProdusPerisabil : public Produs {
 private:
-    std::string dataExpirare;
+    int tempStocare;
+    int umiditateMaxima;
 
 public:
-    ProdusPerisabil(int id, std::string nume, int cant, double pret, int prag, std::string dataExp);
+    ProdusPerisabil(int i, std::string n, int c, double p, int pr, int temp, int umiditate);
     
-    void afiseazaDetalii() const override; 
+    std::string getTipProdus() const override;
+    std::string getDetaliiSpecifice() const override;
 };
