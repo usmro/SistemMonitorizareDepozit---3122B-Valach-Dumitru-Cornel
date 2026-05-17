@@ -59,17 +59,12 @@ Produs& Depozit::getProdus(int idProdus) {
     throw std::invalid_argument("Eroare: Produsul nu exista!");
 }
 
-void Depozit::vindeProdus(int id, int cantitate) {
-    auto it = stoc.find(id);
-    if (it == stoc.end()) {
-        throw std::invalid_argument("Eroare: Produsul nu exista!");
-    }
-    it->second -= cantitate;
-
-    if (it->second.getCantitate() == 0) {
-        std::cout << "[INFO] Stoc epuizat. Eliminam '" << it->second.getNume() << "' din depozit.\n";
-        stoc.erase(it);
-    }
+void Depozit::vindeProdus(int id, int cantitateVanduta) {
+    Produs& p = getProdus(id); 
+    
+    p -= cantitateVanduta;     
+    
+    dbManager.actualizeazaStocInDB(id, p.getCantitate());
 }
 
 // void Depozit::salveazaInFisier(const std::string& numeFisier) const {
@@ -147,7 +142,6 @@ std::vector<Produs> Depozit::getToateProdusele() const {
 
 // void Depozit::importaDateDinCSV(const std::string& cale) {
 //     dbManager.importaMasivDinCSV(cale);
-//     // După import, reîncărcăm map-ul din memorie cu noile date din DB
 //     auto produse_noi = dbManager.incarcaProduse();
 //     stoc.clear();
 //     for (const auto& p : produse_noi) {
@@ -158,3 +152,7 @@ std::vector<Produs> Depozit::getToateProdusele() const {
 std::vector<std::unique_ptr<Produs>> Depozit::getProdusePaginat(int limita, int offset) {
     return dbManager.getProdusePaginat(limita, offset);
 }
+
+std::vector<std::unique_ptr<Produs>> Depozit::getProduseCuStocCritic() {
+        return dbManager.getProduseCuStocCritic();
+    }

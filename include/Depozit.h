@@ -21,15 +21,15 @@ public:
     void adaugaProdus(const Produs& produs);
     void eliminaProdus(int idProdus);
     
-    void afiseazaToateProdusele() const;
-    void genereazaRaportAlerta() const;
+    //void afiseazaToateProdusele() const;
+    //void genereazaRaportAlerta() const;
 
     Produs& getProdus(int idProdus);
 
     void vindeProdus(int id, int cantitate);
 
-    void salveazaInFisier(const std::string& numeFisier) const;
-    void incarcaDinFisier(const std::string& numeFisier);
+    //void salveazaInFisier(const std::string& numeFisier) const;
+    //void incarcaDinFisier(const std::string& numeFisier);
 
     void cautaProdusDupaNume(const std::string& numeCautat) const;
 
@@ -38,4 +38,5 @@ public:
     void importaDateDinCSV(const std::string& cale);
 
     std::vector<std::unique_ptr<Produs>> getProdusePaginat(int limita, int offset);
+    std::vector<std::unique_ptr<Produs>> getProduseCuStocCritic();
 };

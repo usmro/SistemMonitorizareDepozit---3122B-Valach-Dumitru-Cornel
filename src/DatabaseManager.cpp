@@ -77,13 +77,10 @@ void DatabaseManager::importaMasivDinCSV(const std::string& numeFisier) {
     }
 
     std::string line;
-    // Sărim peste prima linie (Header-ul: ID, Tip, Nume, etc.)
     std::getline(file, line);
 
-    // INCEPEM TRANZACTIA (Aici e magia vitezei!)
     sqlite3_exec(db, "BEGIN TRANSACTION;", nullptr, nullptr, nullptr);
 
-    // Pregătim statement-ul o singură dată
     const char* sql = "INSERT OR REPLACE INTO Produse (ID, Nume, Cantitate, Pret, PragAlerta) VALUES (?, ?, ?, ?, ?);";
     sqlite3_stmt* stmt;
     sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr);
@@ -93,7 +90,6 @@ void DatabaseManager::importaMasivDinCSV(const std::string& numeFisier) {
         std::stringstream ss(line);
         std::string id_str, tip, nume, cant_str, pret_str, prag_str;
 
-        // Citim coloanele separate prin virgulă
         std::getline(ss, id_str, ',');
         std::getline(ss, tip, ',');
         std::getline(ss, nume, ',');
@@ -101,21 +97,18 @@ void DatabaseManager::importaMasivDinCSV(const std::string& numeFisier) {
         std::getline(ss, pret_str, ',');
         std::getline(ss, prag_str, ',');
 
-        // Legăm valorile la semnele de întrebare (?) din SQL
         sqlite3_bind_int(stmt, 1, std::stoi(id_str));
         sqlite3_bind_text(stmt, 2, nume.c_str(), -1, SQLITE_TRANSIENT);
         sqlite3_bind_int(stmt, 3, std::stoi(cant_str));
         sqlite3_bind_double(stmt, 4, std::stod(pret_str));
         sqlite3_bind_int(stmt, 5, std::stoi(prag_str));
 
-        // Executăm și resetăm pentru următorul rând
         sqlite3_step(stmt);
         sqlite3_reset(stmt);
         count++;
     }
 
     sqlite3_finalize(stmt);
-    // SALVĂM TOTUL PE DISC O SINGURĂ DATĂ
     sqlite3_exec(db, "COMMIT;", nullptr, nullptr, nullptr);
 
     std::cout << "Import complet! S-au incarcat " << count << " produse in baza de date.\n";
@@ -135,21 +128,54 @@ std::vector<std::unique_ptr<Produs>> DatabaseManager::getProdusePaginat(int limi
             double pret = sqlite3_column_double(stmt, 3);
             int prag = sqlite3_column_int(stmt, 4);
 
-            // LOGICA DE INSTANȚIERE POLIMORFICĂ (Factory Pattern)
             if (nume.find("[Electronice]") != std::string::npos || nume.find("[Electrocasnice]") != std::string::npos) {
-                // Creăm un copil de tip Electronic (cu 24 luni garanție standard)
                 lista.push_back(std::make_unique<ProdusElectronic>(id, nume, cantitate, pret, prag, 24, 220.0));
             } 
             else if (nume.find("[Perisabile]") != std::string::npos) {
-                // Creăm un copil de tip Perisabil (necesită stocare la 4 grade)
                 lista.push_back(std::make_unique<ProdusPerisabil>(id, nume, cantitate, pret, prag, 4, 70));
             } 
             else {
-                // Produs de bază (Auto, General, etc.)
                 lista.push_back(std::make_unique<Produs>(id, nume, cantitate, pret, prag));
             }
         }
     }
     sqlite3_finalize(stmt);
     return lista;
+}
+
+std::vector<std::unique_ptr<Produs>> DatabaseManager::getProduseCuStocCritic() {
+    std::vector<std::unique_ptr<Produs>> lista;
+    std::string sql = "SELECT ID, Nume, Cantitate, Pret, PragAlerta FROM Produse WHERE Cantitate <= PragAlerta;";
+    
+    sqlite3_stmt* stmt;
+    if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr) == SQLITE_OK) {
+        while (sqlite3_step(stmt) == SQLITE_ROW) {
+            int id = sqlite3_column_int(stmt, 0);
+            std::string nume = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1));
+            int cantitate = sqlite3_column_int(stmt, 2);
+            double pret = sqlite3_column_double(stmt, 3);
+            int prag = sqlite3_column_int(stmt, 4);
+
+            lista.push_back(std::make_unique<Produs>(id, nume, cantitate, pret, prag)); 
+        }
+    }
+    sqlite3_finalize(stmt);
+    return lista;
+}
+
+bool DatabaseManager::actualizeazaStocInDB(int id, int nouaCantitate) {
+    std::string sql = "UPDATE Produse SET Cantitate = ? WHERE ID = ?;";
+    sqlite3_stmt* stmt;
+    bool success = false;
+    
+    if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr) == SQLITE_OK) {
+        sqlite3_bind_int(stmt, 1, nouaCantitate);
+        sqlite3_bind_int(stmt, 2, id);
+        
+        if (sqlite3_step(stmt) == SQLITE_DONE) {
+            success = true;
+        }
+    }
+    sqlite3_finalize(stmt);
+    return success;
 }

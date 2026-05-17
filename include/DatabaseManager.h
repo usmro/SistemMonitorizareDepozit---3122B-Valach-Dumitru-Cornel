@@ -26,4 +26,7 @@ public:
 
     void importaMasivDinCSV(const std::string& numeFisier);
     std::vector<std::unique_ptr<Produs>> getProdusePaginat(int limita, int offset);
+
+    std::vector<std::unique_ptr<Produs>> getProduseCuStocCritic();
+    bool actualizeazaStocInDB(int id, int nouaCantitate);
 };
