@@ -151,12 +151,16 @@ int main() {
         try {
             int id = std::stoi(aprov_id);
             int cant = std::stoi(aprov_cant);
-            depozit.getProdus(id) += cant;
-            Tranzactie<std::string>(id, cant, "APROVIZIONARE").afiseazaDetalii();
+            
+            depozit.aprovizioneazaProdus(id, cant);
+            
             mesaj_status = "Succes: Stocul produsului " + aprov_id + " a fost suplimentat cu " + aprov_cant;
             aprov_id = aprov_cant = "";
-        } catch (const std::exception& e) { mesaj_status = std::string("Eroare: ") + e.what(); }
+        } catch (const std::exception& e) { 
+            mesaj_status = std::string("Eroare: Verifica ID-ul! (") + e.what() + ")"; 
+        }
     });
+
     auto form_aprov = Container::Vertical({ Input(&aprov_id, "ID Produs"), Input(&aprov_cant, "Cantitate adaugata"), btn_aprov });
     auto panou_aprovizionare = Renderer(form_aprov, [&] {
         return window(text(" INTRARE STOC (APROVIZIONARE) "), vbox({ form_aprov->Render() | size(WIDTH, LESS_THAN, 40) })) | hcenter;
@@ -167,67 +171,51 @@ int main() {
     // ==========================================
     std::vector<std::unique_ptr<Produs>> produse_critice;
     int pagina_curenta_alerte = 0;
-    const int ALERTE_PER_PAGINA = 8;
+    const int ALERTE_PER_PAGINA = 15;
 
-    // Butonul de interogare SQL
-    auto btn_refresh_alerte = Button(" [ Cauta Produse cu Stoc Critic ] ", [&] {
-        produse_critice = depozit.getProduseCuStocCritic();
-        pagina_curenta_alerte = 0; // Resetăm la prima pagină la o nouă căutare
-    });
-
-    // Butoanele de navigare (Paginare)
-    auto btn_inapoi_alerte = Button("< Pagina Anterioara", [&] { 
-        if (pagina_curenta_alerte > 0) pagina_curenta_alerte--; 
-    });
+    auto btn_inapoi_alerte = Button("< Pagina Anterioara", [&] { if (pagina_curenta_alerte > 0) pagina_curenta_alerte--; });
     auto btn_inainte_alerte = Button("Pagina Urmatoare >", [&] { 
-        // Verificăm dacă mai avem elemente pentru pagina următoare
-        if ((pagina_curenta_alerte + 1) * ALERTE_PER_PAGINA < produse_critice.size()) {
-            pagina_curenta_alerte++; 
-        }
+        if ((pagina_curenta_alerte + 1) * ALERTE_PER_PAGINA < depozit.getProduseCuStocCritic().size()) pagina_curenta_alerte++; 
     });
-
-    // Grupăm butoanele
     auto layout_nav_alerte = Container::Horizontal({ btn_inapoi_alerte, btn_inainte_alerte });
-    auto interactiuni_alerte = Container::Vertical({ btn_refresh_alerte, layout_nav_alerte });
 
-    auto panou_alerte = Renderer(interactiuni_alerte, [&] {
-        std::vector<std::vector<Element>> rows;
-        rows.push_back({text("ID")|bold, text("Nume")|bold, text("Tip")|bold, text("Stoc")|bold, text("Prag")|bold});
-
+    auto panou_alerte = Renderer(layout_nav_alerte, [&] {
+        auto produse_critice = depozit.getProduseCuStocCritic(); 
         int total = produse_critice.size();
 
+        std::vector<std::vector<Element>> rows;
+        rows.push_back({
+            text(" ID ")|bold, 
+            text(" Nume ")|bold, 
+            text(" Tip ")|bold, 
+            text(" Stoc ")|bold, 
+            text(" Prag ")|bold
+        });
+
         if (total == 0) {
-            rows.push_back({text("-"), text("STOCURI OPTIME SAU NEACTUALIZATE. Apasa butonul de mai sus."), text("-"), text("-"), text("-")});
+            rows.push_back({text("-"), text("STOCURI OPTIME."), text("-"), text("-"), text("-")});
         } else {
-            // Calculăm ce bucată (slice) din vector afișăm pe pagina curentă
             int start_idx = pagina_curenta_alerte * ALERTE_PER_PAGINA;
             int end_idx = std::min(start_idx + ALERTE_PER_PAGINA, total);
 
             for (int i = start_idx; i < end_idx; ++i) {
                 const auto& p = produse_critice[i];
                 rows.push_back({
-                    text(std::to_string(p->getId())),
-                    text(p->getNume()),
-                    text(p->getTipProdus()) | color(Color::Yellow),
-                    text(std::to_string(p->getCantitate())) | color(Color::Red) | bold, 
-                    text(std::to_string(p->getPragAlerta())) | color(Color::Cyan)
+                    text(" " + std::to_string(p->getId()) + " "), 
+                    text(" " + p->getNume() + " "),
+                    text(" " + p->getTipProdus() + " ") | color(Color::Yellow),
+                    text(" " + std::to_string(p->getCantitate()) + " ") | color(Color::Red) | bold, 
+                    text(" " + std::to_string(p->getPragAlerta()) + " ") | color(Color::Cyan)
                 });
             }
         }
 
         auto tabel = Table(rows);
         tabel.SelectAll().Border(LIGHT);
-        tabel.SelectAll().Separator(LIGHT);
         tabel.SelectRow(0).Decorate(color(Color::Cyan));
 
-        // Calculăm numărul total de pagini pentru display
-        int total_pagini = (total > 0) ? (total + ALERTE_PER_PAGINA - 1) / ALERTE_PER_PAGINA : 1;
-
         return vbox({
-            text(" ⚠️ RAPORT ALERTE (" + std::to_string(total) + " produse in pericol) ⚠️ ") | bold | color(Color::Red) | hcenter,
-            text(" Pagina " + std::to_string(pagina_curenta_alerte + 1) + " din " + std::to_string(total_pagini)) | dim | hcenter,
-            separator(),
-            btn_refresh_alerte->Render() | hcenter,
+            text("PRODUSE IN STOC CRITIC") | bold | color(Color::Red) | hcenter,
             separator(),
             tabel.Render(),
             separator(),
@@ -252,10 +240,65 @@ int main() {
         return vbox({ text(" CAUTARE LIVE ") | bold | hcenter, separator(), input_cautare->Render() | border, separator(), rezultate.empty() ? text("Niciun rezultat...") : vbox(rezultate) });
     });
 
+    //==========================================
+    // 7. PANOU ISTORIC
+    // ==========================================
+    
+    std::vector<Tranzactie<std::string>> lista_istoric;
+
+    auto panou_istoric = Renderer([&] {
+        auto lista_istoric = depozit.getIstoric(); 
+
+        std::vector<std::vector<Element>> rows;
+        rows.push_back({
+            text(" ID Log ") | bold, 
+            text(" ID Produs ") | bold, 
+            text(" Operatie ") | bold, 
+            text(" Cantitate ") | bold, 
+            text(" Data / Ora ") | bold
+        });
+
+        if (lista_istoric.empty()) {
+            rows.push_back({text("-"), text("-"), text("Nicio activitate inregistrata."), text("-"), text("-")});
+        } else {
+            for (const auto& t : lista_istoric) {
+                auto culoare_operatie = (t.getTipOperatie() == "VANZARE") ? color(Color::Red) : color(Color::Green);
+
+                rows.push_back({
+                    text(" " + std::to_string(t.getIdLog()) + " "),
+                    text(" " + std::to_string(t.getIdProdus()) + " "),
+                    text(" " + t.getTipOperatie() + " ") | culoare_operatie | bold,
+                    text(" " + std::to_string(t.getCantitate()) + " "),
+                    text(" " + t.getDataOraString() + " ") | color(Color::Cyan)
+                });
+            }
+        }
+
+        auto tabel = Table(rows);
+        tabel.SelectAll().Border(LIGHT);
+        tabel.SelectRow(0).Decorate(color(Color::Yellow));
+
+        return vbox({
+            text("JURNAL DE AUDIT AUTOMAT") | bold | hcenter,
+            separator(),
+            tabel.Render(),
+            filler()
+        });
+    });
+
     // ==========================================
     // ASAMBLAREA INTERFEȚEI
     // ==========================================
-    std::vector<std::string> meniu_text = { " 1. Afisare Stoc ", " 2. Adaugare Produs ", " 3. Vanzare ", " 4. Aprovizionare ", " 5. Raport Alerte ", " 6. Cautare ", " 0. Iesire " };
+   std::vector<std::string> meniu_text = { 
+        " 1. Afisare Stoc ", 
+        " 2. Adaugare Produs ", 
+        " 3. Vanzare ", 
+        " 4. Aprovizionare ", 
+        " 5. Raport Alerte ", 
+        " 6. Cautare",
+        " 7. Jurnal Istoric ",
+        " 0. Iesire " 
+    };
     auto meniu_lateral = Menu(&meniu_text, &tab_index);
 
     auto tab_container = Container::Tab({ 
@@ -265,6 +308,7 @@ int main() {
         panou_aprovizionare,
         panou_alerte,
         panou_cautare,
+        panou_istoric,
         Button("EXIT", screen.ExitLoopClosure())    
     }, &tab_index);
     

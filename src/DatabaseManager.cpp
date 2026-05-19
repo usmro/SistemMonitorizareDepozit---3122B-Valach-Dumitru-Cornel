@@ -11,6 +11,7 @@ DatabaseManager::DatabaseManager(const std::string& dbPath) {
         throw std::runtime_error("Nu s-a putut deschide baza de date!");
     }
     creeazaTabele();
+    creeazaTabelIstoric();
 }
 
 void DatabaseManager::creeazaTabele() {
@@ -178,4 +179,55 @@ bool DatabaseManager::actualizeazaStocInDB(int id, int nouaCantitate) {
     }
     sqlite3_finalize(stmt);
     return success;
+}
+
+void DatabaseManager::creeazaTabelIstoric() {
+    std::string sql = "CREATE TABLE IF NOT EXISTS IstoricTranzactii ("
+                      "ID INTEGER PRIMARY KEY AUTOINCREMENT, "
+                      "ID_Produs INTEGER, "
+                      "Tip TEXT, "
+                      "Cantitate INTEGER, "
+                      "DataHora INTEGER);";
+    sqlite3_exec(db, sql.c_str(), nullptr, nullptr, nullptr);
+}
+
+bool DatabaseManager::adaugaInIstoric(int idProdus, const std::string& tip, int cantitate) {
+    std::string sql = "INSERT INTO IstoricTranzactii (ID_Produs, Tip, Cantitate, DataHora) VALUES (?, ?, ?, ?);";
+    sqlite3_stmt* stmt;
+    bool succes = false;
+
+    if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr) == SQLITE_OK) {
+        auto acum = std::chrono::system_clock::now();
+        std::time_t timp = std::chrono::system_clock::to_time_t(acum);
+
+        sqlite3_bind_int(stmt, 1, idProdus);
+        sqlite3_bind_text(stmt, 2, tip.c_str(), -1, SQLITE_TRANSIENT);
+        sqlite3_bind_int(stmt, 3, cantitate);
+        sqlite3_bind_int64(stmt, 4, timp);
+        if (sqlite3_step(stmt) == SQLITE_DONE) {
+            succes = true;
+        }
+    }
+    sqlite3_finalize(stmt);
+    return succes;
+}
+
+std::vector<Tranzactie<std::string>> DatabaseManager::getIstoricTranzactii() {
+    std::vector<Tranzactie<std::string>> istoric;
+   std::string sql = "SELECT ID, ID_Produs, Tip, Cantitate, DataHora FROM IstoricTranzactii ORDER BY ID DESC LIMIT 10;";
+    sqlite3_stmt* stmt;
+
+    if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr) == SQLITE_OK) {
+        while (sqlite3_step(stmt) == SQLITE_ROW) {
+            int idL = sqlite3_column_int(stmt, 0);
+            int idP = sqlite3_column_int(stmt, 1);
+            std::string tip = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 2));
+            int cant = sqlite3_column_int(stmt, 3);
+            std::time_t timp = static_cast<std::time_t>(sqlite3_column_int64(stmt, 4));
+
+            istoric.push_back(Tranzactie<std::string>(idL, idP, cant, tip, timp));
+        }
+    }
+    sqlite3_finalize(stmt);
+    return istoric;
 }

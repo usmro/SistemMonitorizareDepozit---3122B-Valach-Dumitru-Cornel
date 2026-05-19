@@ -6,6 +6,7 @@
 #include <sstream>
 #include <memory>
 #include "Produs.h"
+#include "Tranzactie.h"
 #include "ProdusElectronic.h"
 #include "ProdusPerisabil.h"
 
@@ -19,8 +20,11 @@ public:
     void creeazaTabele();
     void salveazaProdus(const Produs& p);
     std::vector<Produs> incarcaProduse();
+
+    void creeazaTabelIstoric();
+    bool adaugaInIstoric(int idProdus, const std::string& tip, int cantitate);
+    std::vector<Tranzactie<std::string>> getIstoricTranzactii();
     
-    // Metode noi pentru ERP
     void adaugaAngajat(const std::string& nume, const std::string& rol);
     void inregistreazaTranzactie(int produsId, int cantitate, const std::string& tip);
 

@@ -10,13 +10,7 @@ private:
     std::unordered_map<int, Produs> stoc;
     DatabaseManager dbManager;
 public:
-    Depozit() : dbManager("depozit_complex.db") {
-        std::vector<Produs> produse_salvate = dbManager.incarcaProduse();
-        
-        for (const auto& p : produse_salvate) {
-            stoc.insert({p.getId(), p});
-        }
-    }
+    Depozit();
 
     void adaugaProdus(const Produs& produs);
     void eliminaProdus(int idProdus);
@@ -27,6 +21,7 @@ public:
     Produs& getProdus(int idProdus);
 
     void vindeProdus(int id, int cantitate);
+    void aprovizioneazaProdus(int id, int cantitate);
 
     //void salveazaInFisier(const std::string& numeFisier) const;
     //void incarcaDinFisier(const std::string& numeFisier);
@@ -39,4 +34,6 @@ public:
 
     std::vector<std::unique_ptr<Produs>> getProdusePaginat(int limita, int offset);
     std::vector<std::unique_ptr<Produs>> getProduseCuStocCritic();
+
+    std::vector<Tranzactie<std::string>> getIstoric();
 };

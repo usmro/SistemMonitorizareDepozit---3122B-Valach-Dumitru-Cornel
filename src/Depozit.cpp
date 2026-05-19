@@ -3,6 +3,14 @@
 #include <fstream>
 #include <sstream>
 
+
+Depozit::Depozit() : dbManager("depozit_complex.db") {
+    std::vector<Produs> produse_salvate = dbManager.incarcaProduse();
+    
+    for (const auto& p : produse_salvate) {
+        stoc.insert({p.getId(), p});
+    }
+}
 void Depozit::adaugaProdus(const Produs& produs) {
     if (stoc.find(produs.getId()) != stoc.end()) {
         throw std::invalid_argument("Eroare: Un produs cu acest ID exista deja in depozit!");
@@ -65,6 +73,15 @@ void Depozit::vindeProdus(int id, int cantitateVanduta) {
     p -= cantitateVanduta;     
     
     dbManager.actualizeazaStocInDB(id, p.getCantitate());
+    dbManager.adaugaInIstoric(id, "VANZARE", cantitateVanduta);
+}
+
+void Depozit::aprovizioneazaProdus(int id, int cantitate) {
+    Produs& p = getProdus(id); 
+    p += cantitate; 
+    
+    dbManager.actualizeazaStocInDB(id, p.getCantitate());
+    dbManager.adaugaInIstoric(id, "APROVIZIONARE", cantitate);
 }
 
 // void Depozit::salveazaInFisier(const std::string& numeFisier) const {
@@ -155,4 +172,8 @@ std::vector<std::unique_ptr<Produs>> Depozit::getProdusePaginat(int limita, int 
 
 std::vector<std::unique_ptr<Produs>> Depozit::getProduseCuStocCritic() {
         return dbManager.getProduseCuStocCritic();
-    }
+}
+
+std::vector<Tranzactie<std::string>> Depozit::getIstoric() { 
+    return dbManager.getIstoricTranzactii(); 
+}
