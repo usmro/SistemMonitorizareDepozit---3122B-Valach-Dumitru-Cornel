@@ -157,14 +157,14 @@ std::vector<Produs> Depozit::getToateProdusele() const {
     return lista;
 }
 
-// void Depozit::importaDateDinCSV(const std::string& cale) {
-//     dbManager.importaMasivDinCSV(cale);
-//     auto produse_noi = dbManager.incarcaProduse();
-//     stoc.clear();
-//     for (const auto& p : produse_noi) {
-//         stoc.insert_or_assign(p.getId(), p);
-//     }
-// }
+void Depozit::importaDateDinCSV(const std::string& cale) {
+    dbManager.importaMasivDinCSV(cale);
+    auto produse_noi = dbManager.incarcaProduse();
+    stoc.clear();
+    for (const auto& p : produse_noi) {
+        stoc.insert_or_assign(p.getId(), p);
+    }
+}
 
 std::vector<std::unique_ptr<Produs>> Depozit::getProdusePaginat(int limita, int offset) {
     return dbManager.getProdusePaginat(limita, offset);
@@ -176,4 +176,31 @@ std::vector<std::unique_ptr<Produs>> Depozit::getProduseCuStocCritic() {
 
 std::vector<Tranzactie<std::string>> Depozit::getIstoric() { 
     return dbManager.getIstoricTranzactii(); 
+}
+
+double Depozit::getProfitRealizat() { 
+        return dbManager.getProfitRealizat(); 
+}
+
+std::string Depozit::proceseazaComandaCompleta(int idProdus, int cantitate, const std::string& client, const std::string& adresa, const std::string& idCamion) {
+        vindeProdus(idProdus, cantitate); 
+
+        auto acum = std::time(nullptr);
+        std::string awb = "AWB-" + std::to_string(acum) + "-" + std::to_string(rand() % 10000 + 1000);
+
+        dbManager.salveazaComanda(awb, idProdus, cantitate, client, adresa, idCamion);
+
+        return awb;
+    }
+
+bool Depozit::adaugaCamionInFlota(const std::string& id, double cap, const std::string& stat) {
+        return dbManager.adaugaCamion(id, cap, stat);
+}
+
+std::vector<std::string> Depozit::getCamioaneDisponibile() {
+        return dbManager.getCamioaneDisponibile();
+}
+
+std::vector<std::pair<std::string, std::string>> Depozit::getToateCamioanele() {
+        return dbManager.getToateCamioanele();
 }

@@ -36,4 +36,19 @@ public:
     std::vector<std::unique_ptr<Produs>> getProduseCuStocCritic();
 
     std::vector<Tranzactie<std::string>> getIstoric();
+
+    double getProfitRealizat();
+
+    std::string proceseazaComandaCompleta(int idProdus, int cantitate, const std::string& client, const std::string& adresa, const std::string& idCamion);
+
+    double verificaIncarcareVehicul(const std::string& id) { return dbManager.getGradIncarcare(id); }
+    bool declanseazaExpediere(const std::string& id) { return dbManager.expediazaCamion(id); }
+
+    bool adaugaCamionInFlota(const std::string& id, double cap, const std::string& stat);
+    std::vector<std::string> getCamioaneDisponibile();
+    std::vector<std::pair<std::string, std::string>> getToateCamioanele();
+    
+    void resetareTotala() {
+        dbManager.golesteBazaDeDate();
+    }
 };

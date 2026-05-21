@@ -1,7 +1,7 @@
 #include "ProdusFragil.h"
 
-ProdusFragil::ProdusFragil(int i, std::string n, int c, double p, int pr, int maxStiv) 
-    : Produs(i, n, c, p, pr), maxStivuire(maxStiv) {}
+ProdusFragil::ProdusFragil(int id, const std::string& nume, int cantitate, int prag, double pretAchiz, double pretVanz, int maxStivuire, double volume)
+    : Produs(id, nume, cantitate, prag, pretAchiz, pretVanz, volume){}
 
 std::string ProdusFragil::getTipProdus() const { 
     return "Fragil"; 

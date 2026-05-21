@@ -33,4 +33,18 @@ public:
 
     std::vector<std::unique_ptr<Produs>> getProduseCuStocCritic();
     bool actualizeazaStocInDB(int id, int nouaCantitate);
+    bool actualizeazaPreturiProdus(int id, double nouAchiz, double nouVanz);
+
+    double getProfitRealizat();
+
+    void creeazaTabelComenzi();
+    void golesteBazaDeDate();
+
+    bool adaugaCamion(const std::string& id, double capacitate, const std::string& status);
+    std::vector<std::pair<std::string, std::string>> getToateCamioanele();
+    std::vector<std::string> getCamioaneDisponibile();
+    bool salveazaComanda(const std::string& awb, int idProdus, int cantitate, const std::string& client, const std::string& adresa, const std::string& idCamion);
+    bool actualizeazaStatusCamion(const std::string& idCamion, const std::string& noulStatus);
+    double getGradIncarcare(const std::string& idCamion);
+    bool expediazaCamion(const std::string& idCamion);
 };

@@ -3,10 +3,10 @@
 
 class ProdusElectronic : public Produs {
 private:
-    int garantieLuni;
-    double tensiuneAlimentare;
+    int luniGarantie;
+    double voltaj;
 public:
-    ProdusElectronic(int i, std::string n, int c, double p, int pr, int garantie, double tensiune);
+    ProdusElectronic(int id, const std::string& nume, int cantitate, int prag, double pretAchiz, double pretVanz, int luniGarantie, double voltaj, double volum);
     
     std::string getTipProdus() const override;
     std::string getDetaliiSpecifice() const override;

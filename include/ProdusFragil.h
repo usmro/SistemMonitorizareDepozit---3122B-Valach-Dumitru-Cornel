@@ -6,7 +6,7 @@ private:
     int maxStivuire;
 
 public:
-    ProdusFragil(int i, std::string n, int c, double p, int pr, int maxStiv);
+    ProdusFragil(int id, const std::string& nume, int cantitate, int prag, double pretAchiz, double pretVanz, int maxStivuire, double volume);
     
     std::string getTipProdus() const override;
     std::string getDetaliiSpecifice() const override;

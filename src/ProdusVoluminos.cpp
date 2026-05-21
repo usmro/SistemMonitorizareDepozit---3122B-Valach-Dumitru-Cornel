@@ -1,7 +1,7 @@
 #include "ProdusVoluminos.h"
 
-ProdusVoluminos::ProdusVoluminos(int i, std::string n, int c, double p, int pr, double greutate) 
-    : Produs(i, n, c, p, pr), greutateKg(greutate) {
+ProdusVoluminos::ProdusVoluminos(int id, const std::string& nume, int cantitate, int prag, double pretAchiz, double pretVanz, double greutate, double volume)
+    : Produs(id, nume, cantitate, prag, pretAchiz, pretVanz, volume) {
         necesitaMotostivuitor = (greutate > 30.0) ? "DA" : "NU";
 }
 

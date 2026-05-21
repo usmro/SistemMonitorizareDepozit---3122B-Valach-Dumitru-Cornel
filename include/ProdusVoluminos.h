@@ -7,7 +7,7 @@ private:
     std::string necesitaMotostivuitor;
 
 public:
-    ProdusVoluminos(int i, std::string n, int c, double p, int pr, double greutate);
+    ProdusVoluminos(int id, const std::string& nume, int cantitate, int prag, double pretAchiz, double pretVanz, double greutate, double volume);
     
     std::string getTipProdus() const override;
     std::string getDetaliiSpecifice() const override;

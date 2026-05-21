@@ -6,7 +6,7 @@ private:
     std::string clasaRisc;
 
 public:
-    ProdusPericulos(int i, std::string n, int c, double p, int pr, std::string risc);
+    ProdusPericulos(int id, const std::string& nume, int cantitate, int prag, double pretAchiz, double pretVanz, std::string risc, double volum);
     
     std::string getTipProdus() const override;
     std::string getDetaliiSpecifice() const override;
