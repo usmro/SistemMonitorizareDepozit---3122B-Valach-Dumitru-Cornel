@@ -10,6 +10,12 @@
 #include "ProdusElectronic.h"
 #include "ProdusPerisabil.h"
 
+struct InregistrareService {
+    std::string idCamion;
+    std::string data;
+    std::string tipInterventie;
+};
+
 class DatabaseManager {
 private:
     sqlite3* db;
@@ -17,9 +23,14 @@ public:
     DatabaseManager(const std::string& dbPath);
     ~DatabaseManager();
 
+    void creeazaTabelMentenanta();
+    bool efectueazaRevizie(const std::string& idCamion, const std::string& tipInterventie = "Revizie periodica (Limita curse)");
+    std::vector<InregistrareService> getIstoricService();
+    
     void creeazaTabele();
     void salveazaProdus(const Produs& p);
     std::vector<Produs> incarcaProduse();
+    
 
     void creeazaTabelIstoric();
     bool adaugaInIstoric(int idProdus, const std::string& tip, int cantitate);
@@ -47,4 +58,9 @@ public:
     bool actualizeazaStatusCamion(const std::string& idCamion, const std::string& noulStatus);
     double getGradIncarcare(const std::string& idCamion);
     bool expediazaCamion(const std::string& idCamion);
+
+    std::vector<std::string> getCamioaneInCursa();
+    std::vector<std::string> getCamioaneInService();
+    bool finalizeazaCursa(const std::string& idCamion);
+    bool efectueazaRevizie(const std::string& idCamion);
 };

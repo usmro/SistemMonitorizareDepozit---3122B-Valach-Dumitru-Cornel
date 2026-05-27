@@ -47,7 +47,12 @@ public:
     bool adaugaCamionInFlota(const std::string& id, double cap, const std::string& stat);
     std::vector<std::string> getCamioaneDisponibile();
     std::vector<std::pair<std::string, std::string>> getToateCamioanele();
-    
+
+    std::vector<std::string> getCamioaneInCursa() { return dbManager.getCamioaneInCursa(); }
+    std::vector<std::string> getCamioaneInService() { return dbManager.getCamioaneInService(); }
+    bool finalizeazaCursa(const std::string& idCamion) { return dbManager.finalizeazaCursa(idCamion); }
+    bool efectueazaRevizie(const std::string& idCamion, const std::string& tip = "Revizie periodica (Limita curse)");
+    std::vector<InregistrareService> getIstoricService();
     void resetareTotala() {
         dbManager.golesteBazaDeDate();
     }

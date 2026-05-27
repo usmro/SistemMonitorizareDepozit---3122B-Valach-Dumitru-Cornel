@@ -41,7 +41,7 @@ int main() {
 
     auto test_date = depozit.getProdusePaginat(1, 0);
     // ==========================================
-    // 1. PANOU AFISARE STOC (CU PAGINARE)
+    // PANOU AFISARE STOC (CU PAGINARE)
     // ==========================================
     int pagina_curenta = 0;
     const int PRODUSE_PER_PAGINA = 15;
@@ -107,7 +107,7 @@ int main() {
         });
     });
     // ==========================================
-    // 2. PANOU ADAUGARE
+    // PANOU ADAUGARE
     // ==========================================
     auto btn_add = Button("Confirma Adaugarea", [&] {
         try {
@@ -145,9 +145,9 @@ int main() {
     });
 
     // ==========================================
-    // 3. PANOU VANZARE
+    // PANOU VANZARE
     // ==========================================
-    std::string input_id_vanzare;
+   std::string input_id_vanzare;
     std::string input_cant_vanzare;
     std::string input_nume_client;
     std::string input_adresa_client;
@@ -155,19 +155,6 @@ int main() {
     
     int masina_selectata = 0;
     std::vector<std::string> lista_masini = {"Fara Transport (Ridicare personala)"};
-
-    // Funcție lambda care reîncarcă mașinile din DB pentru a avea lista la zi
-    auto refresh_masini = [&]() {
-        lista_masini = {"Fara Transport (Ridicare personala)"};
-        auto disponibile = depozit.getCamioaneDisponibile();
-        for(const auto& m : disponibile) {
-            lista_masini.push_back(m);
-        }
-        masina_selectata = 0; // Resetăm selecția la prima opțiune
-    };
-    
-    // Apelăm o dată la pornire pentru a popula lista
-    refresh_masini();
 
     // Crearea componentelor vizuale
     Component input_id = Input(&input_id_vanzare, " ID Produs (Ex: 1) ");
@@ -186,22 +173,17 @@ int main() {
             int cant = std::stoi(input_cant_vanzare);
             std::string masina = lista_masini[masina_selectata];
             
-            // Apelăm "creierul" pe care l-am scris în Depozit.h
-            depozit.proceseazaComandaCompleta(id, cant, input_nume_client, input_adresa_client, masina);
+            std::string awb = depozit.proceseazaComandaCompleta(id, cant, input_nume_client, input_adresa_client, masina);
             
-            mesaj_vanzare = "SUCCES: Comanda expediata!";
+            mesaj_vanzare = "SUCCES! AWB generat: " + awb;
             if (masina != "Fara Transport (Ridicare personala)") {
-                mesaj_vanzare = "SUCCES: Vehiculul " + masina + " a plecat in cursa!";
+                mesaj_vanzare += " (Asignat pe " + masina + ")";
             }
             
-            // Curățăm formularul
             input_id_vanzare.clear();
             input_cant_vanzare.clear();
             input_nume_client.clear();
             input_adresa_client.clear();
-            
-            // Reîmprospătăm mașinile (pentru că cea tocmai plecată trebuie să dispară din listă)
-            refresh_masini();
             
         } catch (const std::exception& e) {
             mesaj_vanzare = std::string("EROARE: ") + e.what();
@@ -218,6 +200,14 @@ int main() {
     });
 
     auto panou_vanzare = Renderer(layout_vanzare, [&] {
+        auto disponibile = depozit.getCamioaneDisponibile();
+        lista_masini.clear();
+        lista_masini.push_back("Fara Transport (Ridicare personala)");
+        for(const auto& m : disponibile) {
+            lista_masini.push_back(m);
+        }
+        if (masina_selectata >= lista_masini.size()) masina_selectata = 0;
+
         auto culoar_mesaj = mesaj_vanzare.find("EROARE") != std::string::npos ? color(Color::Red) : color(Color::Green);
         
         return vbox({
@@ -234,20 +224,11 @@ int main() {
     });
 
     // ==========================================
-    // 4. PANOU DISPECERAT FLOTA
+    // PANOU DISPECERAT FLOTA
     // ==========================================
     int index_masina_disp = 0;
     std::vector<std::string> lista_masini_disp = {"- Selecteaza vehicul -"};
     std::string status_dispecerat = "";
-    
-
-    auto refresh_dispecerat = [&]() {
-        lista_masini_disp = {"- Selecteaza vehicul -"};
-        auto masini = depozit.getCamioaneDisponibile();
-        for(const auto& m : masini) lista_masini_disp.push_back(m);
-        index_masina_disp = 0;
-    };
-    refresh_dispecerat();
 
     Component dropdown_disp = Dropdown(&lista_masini_disp, &index_masina_disp);
     
@@ -257,7 +238,6 @@ int main() {
             bool ok = depozit.declanseazaExpediere(masina_selectata);
             if (ok) {
                 status_dispecerat = "SUCCES: Vehiculul " + masina_selectata + " a fost expediat!";
-                refresh_dispecerat(); 
             } else {
                 status_dispecerat = "EROARE: Nu s-a putut expedia.";
             }
@@ -267,6 +247,14 @@ int main() {
     auto layout_dispecerat = Container::Vertical({ dropdown_disp, btn_expediaza });
 
     auto panou_dispecerat = Renderer(layout_dispecerat, [&] {
+        auto masini = depozit.getCamioaneDisponibile();
+        lista_masini_disp.clear();
+        lista_masini_disp.push_back("- Selecteaza vehicul -");
+        for(const auto& m : masini) {
+            lista_masini_disp.push_back(m);
+        }
+        if (index_masina_disp >= lista_masini_disp.size()) index_masina_disp = 0;
+
         std::string masina_curenta = lista_masini_disp[index_masina_disp];
         double volum_ocupat = 0.0;
         
@@ -292,7 +280,7 @@ int main() {
     });
 
     // ==========================================
-    // 5. PANOU APROVIZIONARE
+    // PANOU APROVIZIONARE
     // ==========================================
     auto btn_aprov = Button("Confirma Aprovizionarea", [&] {
         try {
@@ -314,7 +302,115 @@ int main() {
     });
 
     // ==========================================
-    // 6. PANOU ALERTE
+    // PANOU MENTENANTA FLOTA
+    // ==========================================
+    int idx_cursa = 0;
+    int idx_service = 0;
+    int idx_manual = 0;
+    std::vector<std::string> lista_sosiri = {"- Fara vehicule pe traseu -"};
+    std::vector<std::string> lista_revizii = {"- Flota este in stare optima -"};
+    std::vector<std::string> lista_manuala = {"- Niciun vehicul disponibil -"};
+    std::string mesaj_mentenanta = "Monitorizare activa.";
+
+    Component drop_sosiri = Dropdown(&lista_sosiri, &idx_cursa);
+    Component drop_revizii = Dropdown(&lista_revizii, &idx_service);
+    Component drop_manual = Dropdown(&lista_manuala, &idx_manual);
+
+    auto btn_sosire = Button("Confirma Sosirea", [&] {
+        if (lista_sosiri[idx_cursa] != "- Fara vehicule pe traseu -") {
+            depozit.finalizeazaCursa(lista_sosiri[idx_cursa]);
+            mesaj_mentenanta = "Vehiculul " + lista_sosiri[idx_cursa] + " a revenit in baza.";
+        }
+    });
+
+    auto btn_revizie = Button("Finalizeaza Revizie Periodica", [&] {
+        if (lista_revizii[idx_service] != "- Flota este in stare optima -") {
+            depozit.efectueazaRevizie(lista_revizii[idx_service], "Revizie periodica obligatorie");
+            mesaj_mentenanta = "Revizie finalizata pentru " + lista_revizii[idx_service];
+        }
+    });
+
+    auto btn_manual = Button("Aplica Mentenanta Preventiva Acum", [&] {
+        if (lista_manuala[idx_manual] != "- Niciun vehicul disponibil -") {
+            depozit.efectueazaRevizie(lista_manuala[idx_manual], "Revizie preventiva (La cerere)");
+            mesaj_mentenanta = "Mentenanta la cerere efectuata pentru " + lista_manuala[idx_manual];
+        }
+    });
+
+    auto layout_mentenanta = Container::Vertical({ drop_sosiri, btn_sosire, drop_revizii, btn_revizie, drop_manual, btn_manual });
+
+    auto panou_mentenanta = Renderer(layout_mentenanta, [&] {
+        
+
+        auto in_cursa = depozit.getCamioaneInCursa();
+        lista_sosiri.clear();
+        if (in_cursa.empty()) lista_sosiri.push_back("- Fara vehicule pe traseu -");
+        else for (const auto& m : in_cursa) lista_sosiri.push_back(m);
+        if (idx_cursa >= lista_sosiri.size()) idx_cursa = 0;
+
+        auto in_service = depozit.getCamioaneInService();
+        lista_revizii.clear();
+        if (in_service.empty()) lista_revizii.push_back("- Flota este in stare optima -");
+        else for (const auto& m : in_service) lista_revizii.push_back(m);
+        if (idx_service >= lista_revizii.size()) idx_service = 0;
+
+        auto disponibile = depozit.getCamioaneDisponibile();
+        lista_manuala.clear();
+        if (disponibile.empty()) lista_manuala.push_back("- Niciun vehicul disponibil -");
+        else for(const auto& m : disponibile) lista_manuala.push_back(m);
+        if (idx_manual >= lista_manuala.size()) idx_manual = 0;
+
+        auto jurnal = depozit.getIstoricService();
+        Elements randuri_jurnal;
+        randuri_jurnal.push_back(hbox({
+            text(" Data ") | bold | size(WIDTH, EQUAL, 20), 
+            text(" Vehicul ") | bold | size(WIDTH, EQUAL, 15), 
+            text(" Tip Interventie ") | bold
+        }));
+        randuri_jurnal.push_back(separator());
+        
+        if (jurnal.empty()) {
+            randuri_jurnal.push_back(text(" Niciun istoric de mentenanta inregistrat.") | color(Color::GrayLight));
+        } else {
+            for (const auto& rec : jurnal) {
+                randuri_jurnal.push_back(hbox({
+                    text(" " + rec.data) | size(WIDTH, EQUAL, 20) | color(Color::GrayLight),
+                    text(" " + rec.idCamion) | size(WIDTH, EQUAL, 15) | bold | color(Color::Cyan),
+                    text(" " + rec.tipInterventie) | color(Color::Yellow)
+                }));
+            }
+        }
+
+        auto zona_receptie = window(text(" Receptie din Cursa "), vbox({
+            hbox(text("Vehicul la poarta: "), drop_sosiri->Render() | flex),
+            btn_sosire->Render() | hcenter
+        }));
+
+        auto zona_service = window(text(" Atelier Mecanic (Obligatoriu) "), vbox({
+            hbox(text("Vehicul imobilizat: "), drop_revizii->Render() | flex),
+            btn_revizie->Render() | hcenter
+        }));
+
+        auto zona_manuala = window(text(" Mentenanta La Cerere (Preventiv) "), vbox({
+            hbox(text("Vehicul in curte:  "), drop_manual->Render() | flex),
+            btn_manual->Render() | hcenter
+        }));
+
+        auto zona_jurnal = window(text(" Jurnal Mentenanta "), vbox(std::move(randuri_jurnal)));
+
+        return vbox({
+            text(" MANAGEMENT MENTENANTA SI UZURA ") | bold | hcenter,
+            separator(),
+            hbox(zona_receptie | flex, text("   "), zona_service | flex),
+            zona_manuala,
+            zona_jurnal,
+            separator(),
+            text(mesaj_mentenanta) | bold | color(Color::Yellow) | hcenter
+        });
+    });
+
+    // ==========================================
+    // PANOU ALERTE
     // ==========================================
     std::vector<std::unique_ptr<Produs>> produse_critice;
     int pagina_curenta_alerte = 0;
@@ -372,7 +468,7 @@ int main() {
     });
 
     // ==========================================
-    // 7. PANOU CAUTARE
+    // PANOU CAUTARE
     // ==========================================
     auto input_cautare = Input(&search_query, " Ex: senzor, rulment... ");
     
@@ -420,7 +516,7 @@ int main() {
     });
 
     //==========================================
-    // 8. PANOU ISTORIC
+    // PANOU ISTORIC
     // ==========================================
     
     std::vector<Tranzactie<std::string>> lista_istoric;
@@ -475,7 +571,7 @@ int main() {
     });
 
     // ==========================================
-    // 9. PANOU RAPORT FINANCIAR (PROFIT)
+    // PANOU RAPORT FINANCIAR (PROFIT)
     // ==========================================
     auto panou_profit = Renderer([&] {
         double total_investitie = 0.0;
@@ -571,6 +667,7 @@ int main() {
         " 7. Cautare",
         " 8. Jurnal Istoric ",
         " 9. Raport Profit ",
+        " 10. Mentenanta Auto",
         " 0. Iesire " 
     };
     auto meniu_lateral = Menu(&meniu_text, &tab_index);
@@ -585,6 +682,7 @@ int main() {
         panou_cautare,
         panou_istoric,
         panou_profit,
+        panou_mentenanta,
         Button("EXIT", screen.ExitLoopClosure())    
     }, &tab_index);
     

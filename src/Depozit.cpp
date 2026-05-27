@@ -204,3 +204,10 @@ std::vector<std::string> Depozit::getCamioaneDisponibile() {
 std::vector<std::pair<std::string, std::string>> Depozit::getToateCamioanele() {
         return dbManager.getToateCamioanele();
 }
+
+bool Depozit::efectueazaRevizie(const std::string& idCamion, const std::string& tip) { 
+        return dbManager.efectueazaRevizie(idCamion, tip); 
+}
+std::vector<InregistrareService> Depozit::getIstoricService() { 
+    return dbManager.getIstoricService(); 
+}
