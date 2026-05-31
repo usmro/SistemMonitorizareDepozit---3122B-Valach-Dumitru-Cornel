@@ -42,7 +42,8 @@ void DatabaseManager::creeazaTabele() {
         "CREATE TABLE IF NOT EXISTS Camioane ("
         "ID TEXT PRIMARY KEY, "
         "Capacitate REAL, "
-        "Status TEXT);";
+        "Status TEXT,"
+        "NumarCurse INTEGER DEFAULT 0);";
         
     sqlite3_exec(db, sql, nullptr, nullptr, nullptr);
 
@@ -95,6 +96,18 @@ void DatabaseManager::golesteBazaDeDate() {
     creeazaTabelIstoric();
     creeazaTabelComenzi();
     creeazaTabelMentenanta();
+}
+
+int DatabaseManager::getNumarTotalTranzactii() {
+    int count = 0;
+    sqlite3_stmt* stmt;
+    if (sqlite3_prepare_v2(db, "SELECT COUNT(*) FROM IstoricTranzactii;", -1, &stmt, nullptr) == SQLITE_OK) {
+        if (sqlite3_step(stmt) == SQLITE_ROW) {
+            count = sqlite3_column_int(stmt, 0);
+        }
+    }
+    sqlite3_finalize(stmt);
+    return count;
 }
 
 void DatabaseManager::salveazaProdus(const Produs& p) {

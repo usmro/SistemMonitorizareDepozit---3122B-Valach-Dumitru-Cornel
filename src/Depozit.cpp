@@ -12,6 +12,7 @@ Depozit::Depozit() : dbManager("depozit_complex.db") {
 
 void Depozit::resetareTotala() {
     dbManager.golesteBazaDeDate();
+    stoc.clear();
 }
 
 void Depozit::adaugaProdus(const Produs& produs) {
@@ -53,6 +54,10 @@ void Depozit::aprovizioneazaProdus(int id, int cantitate) {
     
     dbManager.actualizeazaStocInDB(id, p.getCantitate());
     dbManager.adaugaInIstoric(id, "APROVIZIONARE", cantitate);
+}
+
+int Depozit::getNumarTotalTranzactii() { 
+    return dbManager.getNumarTotalTranzactii(); 
 }
 
 void Depozit::cautaProdusDupaNume(const std::string& numeCautat) const {

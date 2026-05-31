@@ -28,6 +28,7 @@ public:
     // tranzactii
     void vindeProdus(int id, int cantitateVanduta);
     void aprovizioneazaProdus(int id, int cantitate);
+    int getNumarTotalTranzactii();
 
     // baza de date
     void importaDateDinCSV(const std::string& cale);

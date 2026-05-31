@@ -105,8 +105,14 @@ int main() {
         auto tabel = Table(rows);           
         tabel.SelectRow(0).Decorate(color(Color::Cyan));
 
+        int total_produse = depozit.getToateProdusele().size();
+        auto widget_total = hbox({
+            text(" Total Produse în Catalog: " + std::to_string(total_produse) + " ") | bold | color(Color::Cyan)
+        }) | border | hcenter;
+
         return vbox({
             text(" GESTIUNE STOC - PAGINA " + std::to_string(pagina_curenta + 1)) | bold | hcenter,
+            widget_total,
             separator(),
             tabel.Render() | flex,  
             separator(),
@@ -392,8 +398,14 @@ int main() {
         tabel.SelectAll().Border(LIGHT);
         tabel.SelectRow(0).Decorate(color(Color::Cyan));
 
+        auto culoare_widget = total > 0 ? color(Color::Red) : color(Color::Green);
+        auto widget_alerte = hbox({
+            text(" Avertismente Active (Stoc Critic): " + std::to_string(total) + " ") | bold | culoare_widget
+        }) | border | hcenter;
+
         return vbox({
             text("PRODUSE IN STOC CRITIC") | bold | color(Color::Red) | hcenter,
+            widget_alerte, 
             separator(),
             tabel.Render(),
             separator(),
@@ -494,8 +506,14 @@ int main() {
         tabel.SelectAll().Border(LIGHT);
         tabel.SelectRow(0).Decorate(color(Color::Yellow));
 
+        int total_loguri = depozit.getNumarTotalTranzactii();
+        auto widget_istoric = hbox({
+            text(" Volum Total Tranzactii Inregistrate: " + std::to_string(total_loguri) + " ") | bold | color(Color::Yellow)
+        }) | border | hcenter;
+
         return vbox({
             text("JURNAL DE AUDIT AUTOMAT") | bold | hcenter,
+            widget_istoric,
             separator(),
             tabel.Render(),
             filler()

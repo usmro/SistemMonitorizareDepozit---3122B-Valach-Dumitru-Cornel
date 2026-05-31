@@ -4,7 +4,7 @@
 class ProdusVoluminos : public Produs {
 private:
     double greutateKg;
-    bool necesitaMotostivuitor;
+    std::string necesitaMotostivuitor;
 
 public:
     ProdusVoluminos(int id, const std::string& nume, int cantitate, int prag, double pretAchiz, double pretVanz, double greutate, double volume);
