@@ -1,8 +1,6 @@
 #include "Depozit.h"
 #include <stdexcept>
-#include <fstream>
-#include <sstream>
-
+#include <ctime>
 
 Depozit::Depozit() : dbManager("depozit_complex.db") {
     std::vector<Produs> produse_salvate = dbManager.incarcaProduse();
@@ -11,6 +9,11 @@ Depozit::Depozit() : dbManager("depozit_complex.db") {
         stoc.insert({p.getId(), p});
     }
 }
+
+void Depozit::resetareTotala() {
+    dbManager.golesteBazaDeDate();
+}
+
 void Depozit::adaugaProdus(const Produs& produs) {
     if (stoc.find(produs.getId()) != stoc.end()) {
         throw std::invalid_argument("Eroare: Un produs cu acest ID exista deja in depozit!");
@@ -28,37 +31,6 @@ void Depozit::eliminaProdus(int idProdus) {
     std::cout << "[-] Produsul cu ID " << idProdus << " a fost eliminat.\n";
 }
 
-// void Depozit::afiseazaToateProdusele() const {
-//     if (stoc.empty()) {
-//         std::cout << "\n[!] Depozitul este complet gol.\n";
-//         return;
-//     }
-    
-//     std::cout << "\n=== STOC CURENT DEPOZIT ===\n";
-//     for (const auto& [id, produs] : stoc) {
-//         //std::cout << produs << "\n";
-//     }
-//     std::cout << "===========================\n";
-// }
-
-// void Depozit::genereazaRaportAlerta() const {
-//     std::cout << "\n=== RAPORT: PRODUSE SUB PRAGUL DE ALERTA ===\n";
-//     bool gasit = false;
-    
-//     for (const auto& [id, produs] : stoc) {
-//         if (produs.getCantitate() <= produs.getPragAlerta()) {
-//             std::cout << "-> ATENTIE: '" << produs.getNume() 
-//                       << "' mai are doar " << produs.getCantitate() << " bucati!\n";
-//             gasit = true;
-//         }
-//     }
-    
-//     if (!gasit) {
-//         std::cout << "Toate produsele sunt in stoc suficient. Totul este OK!\n";
-//     }
-//     std::cout << "============================================\n";
-// }
-
 Produs& Depozit::getProdus(int idProdus) {
     auto it = stoc.find(idProdus);
     if (it != stoc.end()) {
@@ -69,7 +41,6 @@ Produs& Depozit::getProdus(int idProdus) {
 
 void Depozit::vindeProdus(int id, int cantitateVanduta) {
     Produs& p = getProdus(id); 
-    
     p -= cantitateVanduta;     
     
     dbManager.actualizeazaStocInDB(id, p.getCantitate());
@@ -84,62 +55,12 @@ void Depozit::aprovizioneazaProdus(int id, int cantitate) {
     dbManager.adaugaInIstoric(id, "APROVIZIONARE", cantitate);
 }
 
-// void Depozit::salveazaInFisier(const std::string& numeFisier) const {
-//     std::ofstream out(numeFisier);
-//     if (!out.is_open()) {
-//         throw std::runtime_error("Eroare: Nu am putut deschide fisierul pentru salvare!");
-//     }
-
-//     for (const auto& [id, produs] : stoc) {
-//         out << produs.getId() << ","
-//             << produs.getNume() << ","
-//             << produs.getCantitate() << ","
-//             << produs.getPret() << ","
-//             << produs.getPragAlerta() << "\n";
-//     }
-    
-//     out.close();
-//     std::cout << "[INFO] Stocul a fost salvat in siguranță în '" << numeFisier << "'.\n";
-// }
-
-// void Depozit::incarcaDinFisier(const std::string& numeFisier) {
-//     std::ifstream in(numeFisier);
-//     if (!in.is_open()) {
-//         std::cout << "[INFO] Fisierul de stoc nu exista inca. Va fi creat automat la prima salvare.\n";
-//         return;
-//     }
-
-//     std::string linie;
-//     while (std::getline(in, linie)) {
-//         if (linie.empty()) continue;
-
-//         std::stringstream ss(linie);
-//         std::string token;
-        
-//         int id, cantitate, pragAlerta;
-//         double pret;
-//         std::string nume;
-
-//         std::getline(ss, token, ','); id = std::stoi(token);
-//         std::getline(ss, nume, ',');
-//         std::getline(ss, token, ','); cantitate = std::stoi(token);
-//         std::getline(ss, token, ','); pret = std::stod(token);
-//         std::getline(ss, token, ','); pragAlerta = std::stoi(token);
-
-//         stoc.insert({id, Produs(id, nume, cantitate, pret, pragAlerta)});
-//     }
-    
-//     in.close();
-//     std::cout << "[INFO] Datele au fost incarcate cu succes din '" << numeFisier << "'.\n";
-// }
-
 void Depozit::cautaProdusDupaNume(const std::string& numeCautat) const {
     bool gasit = false;
     std::cout << "\n=== REZULTATE CAUTARE: '" << numeCautat << "' ===\n";
     
     for (const auto& [id, produs] : stoc) {
         if (produs.getNume().find(numeCautat) != std::string::npos) {
-            //std::cout << produs << "\n";
             gasit = true;
         }
     }
@@ -166,12 +87,16 @@ void Depozit::importaDateDinCSV(const std::string& cale) {
     }
 }
 
+int Depozit::genereazaIdProdusNou() {
+    return dbManager.getUrmatorulIdProdus();
+}
+
 std::vector<std::unique_ptr<Produs>> Depozit::getProdusePaginat(int limita, int offset) {
     return dbManager.getProdusePaginat(limita, offset);
 }
 
 std::vector<std::unique_ptr<Produs>> Depozit::getProduseCuStocCritic() {
-        return dbManager.getProduseCuStocCritic();
+    return dbManager.getProduseCuStocCritic();
 }
 
 std::vector<Tranzactie<std::string>> Depozit::getIstoric() { 
@@ -179,35 +104,63 @@ std::vector<Tranzactie<std::string>> Depozit::getIstoric() {
 }
 
 double Depozit::getProfitRealizat() { 
-        return dbManager.getProfitRealizat(); 
+    return dbManager.getProfitRealizat(); 
 }
 
 std::string Depozit::proceseazaComandaCompleta(int idProdus, int cantitate, const std::string& client, const std::string& adresa, const std::string& idCamion) {
-        vindeProdus(idProdus, cantitate); 
+    vindeProdus(idProdus, cantitate); 
 
-        auto acum = std::time(nullptr);
-        std::string awb = "AWB-" + std::to_string(acum) + "-" + std::to_string(rand() % 10000 + 1000);
+    auto acum = std::time(nullptr);
+    std::string awb = "AWB-" + std::to_string(acum) + "-" + std::to_string(rand() % 10000 + 1000);
 
-        dbManager.salveazaComanda(awb, idProdus, cantitate, client, adresa, idCamion);
-
-        return awb;
+    bool salvat = dbManager.salveazaComanda(awb, idProdus, cantitate, client, adresa, idCamion);
+    if (!salvat) {
+        throw std::runtime_error("Eroare SQL: Comanda nu a putut fi salvata in tabelul Comenzi!");
     }
 
+    return awb;
+}
+
+double Depozit::getCapacitateCamion(const std::string& idCamion) { 
+    return dbManager.getCapacitateCamion(idCamion); 
+}
+
 bool Depozit::adaugaCamionInFlota(const std::string& id, double cap, const std::string& stat) {
-        return dbManager.adaugaCamion(id, cap, stat);
+    return dbManager.adaugaCamion(id, cap, stat);
 }
 
 std::vector<std::string> Depozit::getCamioaneDisponibile() {
-        return dbManager.getCamioaneDisponibile();
+    return dbManager.getCamioaneDisponibile();
 }
 
 std::vector<std::pair<std::string, std::string>> Depozit::getToateCamioanele() {
-        return dbManager.getToateCamioanele();
+    return dbManager.getToateCamioanele();
+}
+
+std::vector<std::string> Depozit::getCamioaneInCursa() {
+    return dbManager.getCamioaneInCursa();
+}
+
+std::vector<std::string> Depozit::getCamioaneInService() {
+    return dbManager.getCamioaneInService();
+}
+
+bool Depozit::declanseazaExpediere(const std::string& idCamion) {
+    return dbManager.expediazaCamion(idCamion);
+}
+
+double Depozit::verificaIncarcareVehicul(const std::string& idCamion) {
+    return dbManager.getGradIncarcare(idCamion);
+}
+
+bool Depozit::finalizeazaCursa(const std::string& idCamion) {
+    return dbManager.finalizeazaCursa(idCamion);
 }
 
 bool Depozit::efectueazaRevizie(const std::string& idCamion, const std::string& tip) { 
-        return dbManager.efectueazaRevizie(idCamion, tip); 
+    return dbManager.efectueazaRevizie(idCamion, tip); 
 }
+
 std::vector<InregistrareService> Depozit::getIstoricService() { 
     return dbManager.getIstoricService(); 
 }

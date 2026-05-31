@@ -1,10 +1,8 @@
 #include "Produs.h"
 
-// Implementarea constructorului
 Produs::Produs(int i, std::string n, int c,int pr, double pretAchiz, double pretVanz, double v) 
     : id(i), nume(n), cantitate(c), pragAlerta(pr), pretAchizitie(pretAchiz), pretVanzare(pretVanz), volum(v) {}
 
-// Implementarea metodelor de bază
 std::string Produs::getTipProdus() const { 
     return "General"; 
 }
