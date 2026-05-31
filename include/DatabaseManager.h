@@ -33,6 +33,7 @@ public:
     ~DatabaseManager();
 
     void golesteBazaDeDate();
+    int getNumarTotalTranzactii();
 
     void salveazaProdus(const Produs& p);
     std::vector<Produs> incarcaProduse();
