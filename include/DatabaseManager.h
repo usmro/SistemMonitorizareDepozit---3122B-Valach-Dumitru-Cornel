@@ -9,6 +9,7 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include "Furnizor.h"
 
 class Produs;
 template <typename T> class Tranzactie;
@@ -27,6 +28,7 @@ private:
     void creeazaTabelIstoric();
     void creeazaTabelComenzi();
     void creeazaTabelMentenanta();
+    void creeazaTabelFurnizori();
 
 public:
     explicit DatabaseManager(const std::string& dbPath);
@@ -61,9 +63,11 @@ public:
     bool expediazaCamion(const std::string& idCamion);
     bool finalizeazaCursa(const std::string& idCamion);
 
-
     bool efectueazaRevizie(const std::string& idCamion, const std::string& tipInterventie = "Revizie periodica (Limita curse)");
     std::vector<InregistrareService> getIstoricService();
+
+    bool salveazaFurnizor(const Furnizor& f);
+    std::vector<Furnizor> getFurnizori();
 };
 
 #endif // DATABASEMANAGER_H

@@ -58,7 +58,7 @@ classDiagram
         #int pragAlerta
         #double pretAchizitie
         #double pretVanzare
-        #double volum
+        #double volumM3
         +getId() int
         +getNume() String
         +getVolumM3() double
