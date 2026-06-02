@@ -43,9 +43,25 @@ int main() {
     std::string aprov_id, aprov_cant;
     std::string search_query;
 
-    Component input_pret_achiz = Input(&add_pret_achiz, " Pret Achizitie ");
-    Component input_pret_vanz = Input(&add_pret_vanz, " Pret Vanzare ");
-    Component input_volum = Input(&add_volum, " Volum (Ex: 0.05) ");
+    Component input_pret_achiz = Input(&add_pret_achiz, "Pret Achizitie ");
+    Component input_pret_vanz = Input(&add_pret_vanz, "Pret Vanzare ");
+    Component input_volum = Input(&add_volum, "Volum (Ex: 0.05) ");
+
+    std::string input_nume_furnizor = "";
+    std::string input_contact_furnizor = "";
+    std::string eroare_furnizor = "";
+
+    Component camp_nume_f = Input(&input_nume_furnizor, "Ex: SC Componente SRL");
+    Component camp_contact_f = Input(&input_contact_furnizor, "Ex: 0722123456 sau email");
+
+    auto render_eroare = [](const std::string& mesaj) {
+        if (mesaj.empty()) {
+            return text("") | flex; 
+        }
+        return hbox({
+            text(" [!] EROARE: " + mesaj + " ") | color(Color::Red) | bold
+        }) | border | hcenter;
+    };
 
     // ==========================================
     // 1. PANOU AFISARE STOC (CU PAGINARE)
@@ -116,13 +132,19 @@ int main() {
             separator(),
             tabel.Render() | flex,  
             separator(),
-            layout_butoane->Render() | hcenter
+            layout_butoane->Render() | hcenter,
+            tabel.Render() | hcenter
         });
     });
 
    // ==========================================
     // 2. PANOU INTRARI MARFA
     // ==========================================
+
+    int index_furnizor_aprov = 0;
+    std::vector<std::string> lista_furnizori_aprov = {"- Fara furnizor specificat -"};
+    Component dropdown_furnizori = Dropdown(&lista_furnizori_aprov, &index_furnizor_aprov);
+
     auto btn_add = Button("Creeaza Produs Nou", [&] {
         try {
             if(add_nume.empty() || add_cant.empty() || add_prag.empty() || 
@@ -153,12 +175,24 @@ int main() {
 
     auto btn_aprov = Button("Actualizeaza Stoc", [&] {
         try {
+            if (aprov_id.empty() || aprov_cant.empty()) {
+                throw std::runtime_error("Ambele campuri (ID si Cantitate) sunt obligatorii!");
+            }
             int id = std::stoi(aprov_id);
             int cant = std::stoi(aprov_cant);
+            
+            std::string furnizor_selectat = lista_furnizori_aprov[index_furnizor_aprov];
+
             depozit.aprovizioneazaProdus(id, cant);
-            mesaj_status = "Succes: Stocul produsului " + aprov_id + " a fost suplimentat cu " + aprov_cant;
+            
+            mesaj_status = "Succes: Stocul produsului " + aprov_id + " suplimentat. (Sursa: " + furnizor_selectat + ")";
+            
             aprov_id = aprov_cant = "";
-        } catch (const std::exception& e) { mesaj_status = std::string("Eroare Aprovizionare: ") + e.what(); }
+            index_furnizor_aprov = 0; 
+            
+        } catch (const std::exception& e) { 
+            mesaj_status = std::string("Eroare Aprovizionare: ") + e.what(); 
+        }
     });
 
     auto form_add = Container::Vertical({ 
@@ -172,12 +206,28 @@ int main() {
     });
 
     auto form_aprov = Container::Vertical({ 
-        Input(&aprov_id, "ID Produs Existent"), Input(&aprov_cant, "Cantitate Primita"), btn_aprov 
+        Input(&aprov_id, "ID Produs Existent"), 
+        Input(&aprov_cant, "Cantitate Primita"), 
+        dropdown_furnizori,
+        btn_aprov 
     });
 
     auto layout_intrari = Container::Horizontal({ form_add, form_aprov });
 
     auto panou_intrari = Renderer(layout_intrari, [&] {
+        
+        auto furnizori_db = depozit.getFurnizori();
+        if (furnizori_db.size() + 1 != lista_furnizori_aprov.size()) {
+            lista_furnizori_aprov.clear();
+            lista_furnizori_aprov.push_back("- Fara furnizor specificat -");
+            for(const auto& f : furnizori_db) {
+                lista_furnizori_aprov.push_back(f.getNume());
+            }
+            if (index_furnizor_aprov >= lista_furnizori_aprov.size()) {
+                index_furnizor_aprov = 0;
+            }
+        }
+
         return vbox({
             text(" MODUL RECEPTIE MARFA (INTRARI) ") | bold | hcenter,
             separator(),
@@ -188,7 +238,13 @@ int main() {
                     text("Folositi acest formular pentru produsele care") | dim | hcenter,
                     text("exista deja in baza de date.") | dim | hcenter,
                     separator(),
-                    form_aprov->Render() | flex
+                    
+                    hbox(text(" ID Produs: "), form_aprov->ChildAt(0)->Render() | flex),
+                    hbox(text(" Cantitate: "), form_aprov->ChildAt(1)->Render() | flex),
+                    hbox(text(" Sursa:     "), form_aprov->ChildAt(2)->Render() | flex),
+                    
+                    filler(),
+                    form_aprov->ChildAt(3)->Render() | hcenter
                 })) | flex
             }) | flex
         });
@@ -214,8 +270,8 @@ int main() {
 
     auto btn_vinde = Button("Confirma Comanda & Expedierea", [&] {
         try {
-            if(input_id_vanzare.empty() || input_cant_vanzare.empty()) {
-                throw std::runtime_error("ID-ul si Cantitatea sunt obligatorii!");
+            if (input_id_vanzare.empty() || input_cant_vanzare.empty()) {
+                throw std::runtime_error("Ambele campuri trebuie completate pentru a finaliza vanzarea!");
             }
 
             int id = std::stoi(input_id_vanzare);
@@ -273,31 +329,49 @@ int main() {
     int index_masina_disp = 0;
     std::vector<std::string> lista_masini_disp = {"- Selecteaza vehicul -"};
     std::string status_dispecerat = "";
+    std::string eroare_dispecerat = ""; // Variabila pentru validari defensive
 
     Component dropdown_disp = Dropdown(&lista_masini_disp, &index_masina_disp);
     
     auto btn_expediaza = Button("Expediaza Vehiculul in Cursa", [&] {
-        std::string masina_selectata = lista_masini_disp[index_masina_disp];
-        if (masina_selectata != "- Selecteaza vehicul -") {
-            bool ok = depozit.declanseazaExpediere(masina_selectata);
-            if (ok) {
-                status_dispecerat = "SUCCES: Vehiculul " + masina_selectata + " a fost expediat!";
-            } else {
-                status_dispecerat = "EROARE: Nu s-a putut expedia.";
+        try {
+            eroare_dispecerat = "";
+            status_dispecerat = "";
+
+            if (index_masina_disp == 0 || index_masina_disp >= lista_masini_disp.size()) {
+                throw std::invalid_argument("Va rugam sa selectati un vehicul valid din flota.");
             }
+
+            std::string masina_selectata = lista_masini_disp[index_masina_disp];
+            
+            // Aici aruncam exceptie daca logica de business din Depozit eșuează
+            bool ok = depozit.declanseazaExpediere(masina_selectata);
+            if (!ok) {
+                throw std::runtime_error("Operatiunea a fost respinsa de baza de date.");
+            }
+
+            status_dispecerat = "SUCCES: Vehiculul " + masina_selectata + " a plecat in cursa!";
+            index_masina_disp = 0; // Resetam selectia dupa expediere
+
+        } catch (const std::exception& e) {
+            eroare_dispecerat = e.what();
         }
     });
 
     auto layout_dispecerat = Container::Vertical({ dropdown_disp, btn_expediaza });
 
     auto panou_dispecerat = Renderer(layout_dispecerat, [&] {
-        auto masini = depozit.getCamioaneDisponibile();
-        lista_masini_disp.clear();
-        lista_masini_disp.push_back("- Selecteaza vehicul -");
-        for(const auto& m : masini) {
-            lista_masini_disp.push_back(m);
+        auto masini_db = depozit.getCamioaneDisponibile();
+        if (masini_db.size() + 1 != lista_masini_disp.size()) {
+            lista_masini_disp.clear();
+            lista_masini_disp.push_back("- Selecteaza vehicul -");
+            for(const auto& m : masini_db) {
+                lista_masini_disp.push_back(m);
+            }
+            if (index_masina_disp >= lista_masini_disp.size()) {
+                index_masina_disp = 0;
+            }
         }
-        if (index_masina_disp >= lista_masini_disp.size()) index_masina_disp = 0;
 
         std::string masina_curenta = lista_masini_disp[index_masina_disp];
         double volum_ocupat = 0.0;
@@ -306,27 +380,34 @@ int main() {
         
         if (masina_curenta != "- Selecteaza vehicul -") {
             volum_ocupat = depozit.verificaIncarcareVehicul(masina_curenta);
-            capacitate_maxima = depozit.getCapacitateCamion(masina_curenta);
+            capacitate_maxima = depozit.getCapacitateCamion(masina_curenta); 
             if (capacitate_maxima > 0.0) {
                 procent_incarcare = static_cast<float>(volum_ocupat / capacitate_maxima);
             }
         }
         
         std::stringstream ssVol, ssCap, ssProcent;
-        ssVol << std::fixed << std::setprecision(3) << volum_ocupat;
-        ssCap << std::fixed << std::setprecision(1) << capacitate_maxima;
+        ssVol << std::fixed << std::setprecision(2) << volum_ocupat;
+        ssCap << std::fixed << std::setprecision(2) << capacitate_maxima;
         ssProcent << std::fixed << std::setprecision(1) << (procent_incarcare * 100.0f);
         
         auto culoare_bara = color(Color::Green);
-        if (procent_incarcare > 0.9f) culoare_bara = color(Color::Red);
-        else if (procent_incarcare > 0.7f) culoare_bara = color(Color::Yellow);
+        if (procent_incarcare > 0.95f) culoare_bara = color(Color::Red);
+        else if (procent_incarcare > 0.75f) culoare_bara = color(Color::Yellow);
 
         Element bara_grafica = gauge(std::min(procent_incarcare, 1.0f)) | culoare_bara;
+
+        Element afisaj_mesaje = text("");
+        if (!eroare_dispecerat.empty()) {
+            afisaj_mesaje = hbox({ text(" [!] EROARE: " + eroare_dispecerat + " ") | bold | color(Color::Red) }) | border | hcenter;
+        } else if (!status_dispecerat.empty()) {
+            afisaj_mesaje = text(status_dispecerat) | bold | color(Color::Yellow) | hcenter;
+        }
 
         return vbox({
             text(" DISPECERAT LOGISTICA FLOTA ") | bold | hcenter,
             separator(),
-            hbox(text(" Flota in curte: "), dropdown_disp->Render() | flex) | border,
+            hbox(text(" Selectie Vehicul: "), dropdown_disp->Render() | flex) | border,
             separator(),
             masina_curenta == "- Selecteaza vehicul -" ? 
                 text("Selectati un vehicul din lista pentru a-i vedea planul de incarcare.") | dim | hcenter :
@@ -340,9 +421,8 @@ int main() {
                     }) | bold,
                 }) | border,
             separator(),
-            btn_expediaza->Render() | hcenter,
-            separator(),
-            text(status_dispecerat) | bold | color(Color::Yellow) | hcenter
+            afisaj_mesaje, // Afiseaza fie succesul, fie caseta de eroare
+            btn_expediaza->Render() | hcenter
         });
     });
 
@@ -706,7 +786,78 @@ int main() {
             zona_manuala,
             zona_jurnal,
             separator(),
-            text(mesaj_mentenanta) | bold | color(Color::Yellow) | hcenter
+            text(mesaj_mentenanta) | bold | color(Color::Yellow) | hcenter,
+            
+        });
+    });
+
+    // ==========================================
+    // 10. PANOU FURNIZOR
+    // ==========================================
+
+    auto btn_adauga_furnizor = Button("Inregistreaza Furnizor", [&] {
+        try {
+            eroare_furnizor = "";
+            
+            if (input_nume_furnizor.empty() || input_contact_furnizor.empty()) {
+                throw std::runtime_error("Toate campurile (Nume, Contact) sunt obligatorii!");
+            }
+
+            Furnizor f(0, input_nume_furnizor, input_contact_furnizor);
+            depozit.adaugaFurnizor(f);
+
+            input_nume_furnizor = "";
+            input_contact_furnizor = "";
+        } catch (const std::exception& e) {
+            eroare_furnizor = e.what();
+        }
+    });
+
+    auto layout_furnizori = Container::Vertical({ camp_nume_f, camp_contact_f, btn_adauga_furnizor });
+
+    auto panou_furnizori = Renderer(layout_furnizori, [&] {
+        std::vector<std::vector<std::string>> randuri_tabel = {
+            {" ID Partener ", " Nume Companie / Furnizor ", " Date de Contact (Tel / Email) "}
+        };
+        
+        auto lista_f = depozit.getFurnizori();
+        if (lista_f.empty()) {
+            randuri_tabel.push_back({"-", "Niciun furnizor inregistrat in baza de date.", "-"});
+        } else {
+            for (const auto& f : lista_f) {
+                randuri_tabel.push_back({
+                    " " + std::to_string(f.getId()) + " ",
+                    " " + f.getNume() + " ",
+                    " " + f.getContact() + " "
+                });
+            }
+        }
+        
+        auto tabel = Table(randuri_tabel);
+        tabel.SelectAll().Border(LIGHT);
+        
+        tabel.SelectRow(0).Decorate(bold);
+        tabel.SelectRow(0).Decorate(color(Color::Cyan));
+        tabel.SelectRow(0).BorderBottom(DOUBLE); 
+        
+        tabel.SelectColumn(0).Decorate(center);
+        tabel.SelectColumn(1).Decorate(color(Color::White));
+        tabel.SelectColumn(2).Decorate(color(Color::YellowLight));
+
+        return vbox({
+            text(" GESTIUNE FURNIZORI SI ACHIZITII ") | bold | hcenter,
+            separator(),
+            text(" Adaugare Partener Nou:") | bold,
+            hbox(text(" Nume Companie: "), camp_nume_f->Render() | flex) | border,
+            hbox(text(" Date Contact:  "), camp_contact_f->Render() | flex) | border,
+            render_eroare(eroare_furnizor),
+            btn_adauga_furnizor->Render() | hcenter,
+            separator(),
+            text(" REGISTRU FURNIZORI ACTIVI ") | bold | hcenter,
+            
+            tabel.Render() | hcenter,
+            
+            filler()
         });
     });
 
@@ -723,6 +874,7 @@ int main() {
         " 7. Jurnal Istoric ",
         " 8. Raport Profit ",
         " 9. Mentenanta Auto",
+        " 10. Furnizori",
         " 0. Iesire " 
     };
     auto meniu_lateral = Menu(&meniu_text, &tab_index);
@@ -737,6 +889,7 @@ int main() {
         panou_istoric,
         panou_profit,
         panou_mentenanta,
+        panou_furnizori,
         Button("EXIT", screen.ExitLoopClosure())    
     }, &tab_index);
     

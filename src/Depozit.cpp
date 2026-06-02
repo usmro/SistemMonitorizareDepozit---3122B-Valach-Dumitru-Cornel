@@ -169,3 +169,11 @@ bool Depozit::efectueazaRevizie(const std::string& idCamion, const std::string& 
 std::vector<InregistrareService> Depozit::getIstoricService() { 
     return dbManager.getIstoricService(); 
 }
+
+void Depozit::adaugaFurnizor(const Furnizor& f) {
+    dbManager.salveazaFurnizor(f);
+}
+
+std::vector<Furnizor> Depozit::getFurnizori() {
+    return dbManager.getFurnizori();
+}

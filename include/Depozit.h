@@ -9,12 +9,13 @@
 #include "DatabaseManager.h"
 #include "Produs.h"
 #include "Tranzactie.h"
+#include "Furnizor.h"
 
 class Depozit {
 private:
     DatabaseManager dbManager;
     std::unordered_map<int, Produs> stoc;
-
+    std::vector<Furnizor> listaFurnizori;
 public:
     Depozit();
 
@@ -56,6 +57,10 @@ public:
     bool finalizeazaCursa(const std::string& idCamion);
     bool efectueazaRevizie(const std::string& idCamion, const std::string& tip = "Revizie periodica (Limita curse)");
     std::vector<InregistrareService> getIstoricService();
+
+    // furnizori
+    void adaugaFurnizor(const Furnizor& f);
+    std::vector<Furnizor> getFurnizori();
 };
 
 #endif // DEPOZIT_H
