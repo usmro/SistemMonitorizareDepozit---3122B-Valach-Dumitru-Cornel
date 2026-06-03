@@ -42,7 +42,8 @@ void DatabaseManager::creeazaTabele() {
         "CREATE TABLE IF NOT EXISTS Camioane ("
         "ID TEXT PRIMARY KEY, "
         "Capacitate REAL, "
-        "Status TEXT);";
+        "Status TEXT,"
+        "NumarCurse INTEGER DEFAULT 0);";
         
     sqlite3_exec(db, sql, nullptr, nullptr, nullptr);
 
@@ -95,6 +96,18 @@ void DatabaseManager::golesteBazaDeDate() {
     creeazaTabelIstoric();
     creeazaTabelComenzi();
     creeazaTabelMentenanta();
+}
+
+int DatabaseManager::getNumarTotalTranzactii() {
+    int count = 0;
+    sqlite3_stmt* stmt;
+    if (sqlite3_prepare_v2(db, "SELECT COUNT(*) FROM IstoricTranzactii;", -1, &stmt, nullptr) == SQLITE_OK) {
+        if (sqlite3_step(stmt) == SQLITE_ROW) {
+            count = sqlite3_column_int(stmt, 0);
+        }
+    }
+    sqlite3_finalize(stmt);
+    return count;
 }
 
 void DatabaseManager::salveazaProdus(const Produs& p) {
@@ -344,7 +357,7 @@ bool DatabaseManager::adaugaCamion(const std::string& id, double capacitate, con
     return succes;
 }
 double DatabaseManager::getCapacitateCamion(const std::string& idCamion) {
-    double capacitate = 0.0;
+   double capacitate = 0.0;
     std::string sql = "SELECT Capacitate FROM Camioane WHERE ID = ?;";
     sqlite3_stmt* stmt;
     
@@ -471,6 +484,22 @@ double DatabaseManager::getGradIncarcare(const std::string& idCamion) {
 }
 
 bool DatabaseManager::expediazaCamion(const std::string& idCamion) {
+    std::string sqlCheck = "SELECT COUNT(*) FROM Comenzi WHERE ID_Camion = ? AND StatusComanda = 'In Pregatire';";
+    sqlite3_stmt* stmtCheck;
+    int comenziInAsteptare = 0;
+
+    if (sqlite3_prepare_v2(db, sqlCheck.c_str(), -1, &stmtCheck, nullptr) == SQLITE_OK) {
+        sqlite3_bind_text(stmtCheck, 1, idCamion.c_str(), -1, SQLITE_TRANSIENT);
+        if (sqlite3_step(stmtCheck) == SQLITE_ROW) {
+            comenziInAsteptare = sqlite3_column_int(stmtCheck, 0);
+        }
+    }
+    sqlite3_finalize(stmtCheck);
+
+    if (comenziInAsteptare == 0) {
+        throw std::runtime_error("Eroare: Vehiculul " + idCamion + " este gol! Nu are nicio comanda de livrat.");
+    }
+
     bool succes = false;
     std::string sqlMasina = "UPDATE Camioane SET Status = 'In Cursa' WHERE ID = ?;";
     std::string sqlComenzi = "UPDATE Comenzi SET StatusComanda = 'Expediat' WHERE ID_Camion = ? AND StatusComanda = 'In Pregatire';";
@@ -578,4 +607,92 @@ int DatabaseManager::getUrmatorulIdProdus() {
     }
     sqlite3_finalize(stmt);
     return nextId;
+}
+
+bool DatabaseManager::salveazaFurnizor(const Furnizor& f) {
+    std::string sql = "INSERT INTO Furnizori (NumeCompanie, Contact) VALUES (?, ?);";
+    sqlite3_stmt* stmt;
+    
+    if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr) == SQLITE_OK) {
+        sqlite3_bind_text(stmt, 1, f.getNume().c_str(), -1, SQLITE_TRANSIENT);
+        sqlite3_bind_text(stmt, 2, f.getContact().c_str(), -1, SQLITE_TRANSIENT);
+        
+        bool succes = (sqlite3_step(stmt) == SQLITE_DONE);
+        sqlite3_finalize(stmt);
+        return succes;
+    }
+    return false;
+}
+
+std::vector<Furnizor> DatabaseManager::getFurnizori() {
+    std::vector<Furnizor> lista;
+    std::string sql = "SELECT ID, NumeCompanie, Contact FROM Furnizori;";
+    sqlite3_stmt* stmt;
+    
+    if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr) == SQLITE_OK) {
+        while (sqlite3_step(stmt) == SQLITE_ROW) {
+            int id = sqlite3_column_int(stmt, 0);
+            
+            const unsigned char* textNume = sqlite3_column_text(stmt, 1);
+            const unsigned char* textContact = sqlite3_column_text(stmt, 2);
+            
+            std::string nume = textNume ? reinterpret_cast<const char*>(textNume) : "";
+            std::string contact = textContact ? reinterpret_cast<const char*>(textContact) : "";
+            
+            lista.push_back(Furnizor(id, nume, contact));
+        }
+    }
+    sqlite3_finalize(stmt);
+    return lista;
+}
+
+bool DatabaseManager::stergeFurnizor(int id) {
+    std::string sql = "DELETE FROM Furnizori WHERE ID = ?;";
+    sqlite3_stmt* stmt;
+    bool succes = false;
+    
+    if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr) == SQLITE_OK) {
+        sqlite3_bind_int(stmt, 1, id);
+        
+        succes = (sqlite3_step(stmt) == SQLITE_DONE);
+    }
+    sqlite3_finalize(stmt);
+    return succes;
+}
+
+int DatabaseManager::getTotalFurnizori() {
+    int total = 0;
+    sqlite3_stmt* stmt;
+    if (sqlite3_prepare_v2(db, "SELECT COUNT(*) FROM Furnizori;", -1, &stmt, nullptr) == SQLITE_OK) {
+        if (sqlite3_step(stmt) == SQLITE_ROW) {
+            total = sqlite3_column_int(stmt, 0);
+        }
+    }
+    sqlite3_finalize(stmt);
+    return total;
+}
+
+std::vector<Furnizor> DatabaseManager::getFurnizoriPaginat(int limita, int offset) {
+    std::vector<Furnizor> lista;
+    std::string sql = "SELECT ID, NumeCompanie, Contact FROM Furnizori LIMIT ? OFFSET ?;";
+    sqlite3_stmt* stmt;
+    
+    if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr) == SQLITE_OK) {
+        sqlite3_bind_int(stmt, 1, limita);
+        sqlite3_bind_int(stmt, 2, offset);
+        
+        while (sqlite3_step(stmt) == SQLITE_ROW) {
+            int id = sqlite3_column_int(stmt, 0);
+            
+            const unsigned char* textNume = sqlite3_column_text(stmt, 1);
+            const unsigned char* textContact = sqlite3_column_text(stmt, 2);
+            
+            std::string nume = textNume ? reinterpret_cast<const char*>(textNume) : "";
+            std::string contact = textContact ? reinterpret_cast<const char*>(textContact) : "";
+            
+            lista.push_back(Furnizor(id, nume, contact));
+        }
+    }
+    sqlite3_finalize(stmt);
+    return lista;
 }
