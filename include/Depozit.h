@@ -27,7 +27,7 @@ public:
     void cautaProdusDupaNume(const std::string& numeCautat) const;
     
     // tranzactii
-    void vindeProdus(int id, int cantitateVanduta);
+    void vindeProdus(int id, int cantitateVanduta, const std::string& idCamion);
     void aprovizioneazaProdus(int id, int cantitate);
     int getNumarTotalTranzactii();
 
@@ -61,6 +61,9 @@ public:
     // furnizori
     void adaugaFurnizor(const Furnizor& f);
     std::vector<Furnizor> getFurnizori();
+    std::vector<Furnizor> getFurnizoriPaginat(int limita, int offset);
+    int getTotalFurnizori();
+    bool stergeFurnizor(int id);
 };
 
 #endif // DEPOZIT_H

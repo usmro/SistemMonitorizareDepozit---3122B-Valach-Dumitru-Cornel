@@ -68,6 +68,9 @@ public:
 
     bool salveazaFurnizor(const Furnizor& f);
     std::vector<Furnizor> getFurnizori();
+    std::vector<Furnizor> getFurnizoriPaginat(int limita, int offset);
+    int getTotalFurnizori();
+    bool stergeFurnizor(int id);
 };
 
 #endif // DATABASEMANAGER_H

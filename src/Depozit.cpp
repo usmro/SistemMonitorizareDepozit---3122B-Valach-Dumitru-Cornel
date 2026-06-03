@@ -1,5 +1,6 @@
 #include "Depozit.h"
 #include <stdexcept>
+#include <iomanip>
 #include <ctime>
 
 Depozit::Depozit() : dbManager("depozit_complex.db") {
@@ -40,8 +41,27 @@ Produs& Depozit::getProdus(int idProdus) {
     throw std::invalid_argument("Eroare: Produsul nu exista!");
 }
 
-void Depozit::vindeProdus(int id, int cantitateVanduta) {
+void Depozit::vindeProdus(int id, int cantitateVanduta, const std::string& idCamion) {
     Produs& p = getProdus(id); 
+    bool necesitaLivrare = !idCamion.empty() && idCamion != "- Ridicare Personala -";
+
+    if (necesitaLivrare) {
+        double volum_total_comanda = p.getVolum() * cantitateVanduta;
+        double capacitate_masina = dbManager.getCapacitateCamion(idCamion);
+        
+        if (capacitate_masina > 0 && volum_total_comanda > capacitate_masina) {
+            double procent = (volum_total_comanda / capacitate_masina) * 100.0;
+            
+            std::stringstream ssMesaj;
+            ssMesaj << std::fixed << std::setprecision(1) 
+                    << "Eroare Logistica: Volumul marfii (" << volum_total_comanda 
+                    << " m3) depaseste capacitatea utilitarei (" << capacitate_masina 
+                    << " m3). Ocupa " << procent << "% din spatiu!";
+                    
+            throw std::runtime_error(ssMesaj.str());
+        }
+    }
+
     p -= cantitateVanduta;     
     
     dbManager.actualizeazaStocInDB(id, p.getCantitate());
@@ -113,7 +133,7 @@ double Depozit::getProfitRealizat() {
 }
 
 std::string Depozit::proceseazaComandaCompleta(int idProdus, int cantitate, const std::string& client, const std::string& adresa, const std::string& idCamion) {
-    vindeProdus(idProdus, cantitate); 
+    vindeProdus(idProdus, cantitate, idCamion); 
 
     auto acum = std::time(nullptr);
     std::string awb = "AWB-" + std::to_string(acum) + "-" + std::to_string(rand() % 10000 + 1000);
@@ -176,4 +196,16 @@ void Depozit::adaugaFurnizor(const Furnizor& f) {
 
 std::vector<Furnizor> Depozit::getFurnizori() {
     return dbManager.getFurnizori();
+}
+
+bool Depozit::stergeFurnizor(int id) {
+    return dbManager.stergeFurnizor(id);
+}
+
+std::vector<Furnizor> Depozit::getFurnizoriPaginat(int limita, int offset) {
+    return dbManager.getFurnizoriPaginat(limita, offset);
+}
+
+int Depozit::getTotalFurnizori() {
+    return dbManager.getTotalFurnizori();
 }
