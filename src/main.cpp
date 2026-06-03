@@ -506,7 +506,6 @@ int main() {
     auto panou_cautare = Renderer(input_cautare, [&] {
         std::vector<std::vector<Element>> rows;
         
-        // 1. Centram Header-ul, dar Numele il aliniem la dreapta
         rows.push_back({ 
             text(" ID ") | bold | center, 
             text(" Nume Produs ") | bold | center, 
@@ -527,7 +526,6 @@ int main() {
                     
                     auto culoare_stoc = (p.getCantitate() == 0) ? color(Color::Red) : color(Color::White);
                     
-                    // 2. Centram celulele randului, dar Numele il aliniem la dreapta
                     rows.push_back({
                         text(" " + std::to_string(p.getId()) + " ") | center, 
                         text(" " + p.getNume() + " "), 
@@ -542,14 +540,12 @@ int main() {
         tabel.SelectAll().Border(LIGHT);
         tabel.SelectRow(0).Decorate(color(Color::Yellow));
 
-        // 3. Extragem zona care se schimba in functie de rezultate pentru a-i aplica centrarea globala frumos
         Element zona_rezultate;
         if (search_query.empty()) {
             zona_rezultate = text(" Introduceti text pentru a cauta...") | dim | hcenter;
         } else if (rows.size() == 1) {
             zona_rezultate = text(" Niciun produs gasit.") | color(Color::Red) | hcenter;
         } else {
-            // Aici centram efectiv tabelul pe ecran
             zona_rezultate = tabel.Render() | hcenter; 
         }
 
@@ -559,7 +555,6 @@ int main() {
             hbox({ text(" Cauta: "), input_cautare->Render() | flex }) | border, 
             separator(), 
             
-            // 4. Afisam zona de rezultate (care acum include tabelul perfect centrat)
             zona_rezultate,
             
             filler()
