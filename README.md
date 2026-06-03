@@ -24,14 +24,27 @@ Acest repository conține implementarea unui sistem de tip Enterprise Resource P
 classDiagram
     Depozit *-- DatabaseManager : "Utilizeaza (Compozitie)"
     Depozit o-- Produs : "Gestioneaza (Agregare)"
+    Depozit o-- Furnizor : "Gestioneaza (Agregare)"
+    
     DatabaseManager ..> Tranzactie : "Creeaza"
     DatabaseManager ..> InregistrareService : "Creeaza"
+    DatabaseManager ..> Furnizor : "Extrage / Instantiaza"
     
     Produs <|-- ProdusElectronic : "Mosteneste"
     Produs <|-- ProdusPerisabil : "Mosteneste"
     Produs <|-- ProdusFragil : "Mosteneste"
     Produs <|-- ProdusPericulos : "Mosteneste"
     Produs <|-- ProdusVoluminos : "Mosteneste"
+
+    class Furnizor {
+        -int id
+        -String numeCompanie
+        -String dateContact
+        +Furnizor(int, String, String)
+        +getId() int
+        +getNume() String
+        +getContact() String
+    }
 
     class InregistrareService {
         <<struct>>
@@ -105,11 +118,14 @@ classDiagram
         +creeazaTabele() void
         +getUrmatorulIdProdus() int
         +salveazaProdus(Produs p) void
-        +getProdusePaginat(int, int) List~Produs~
         +salveazaComanda(AWB, id, cant, masina) bool
         +getGradIncarcare(idCamion) double
         +finalizeazaCursa(idCamion) bool
         +efectueazaRevizie(idCamion, tip) bool
+        +salveazaFurnizor(Furnizor f) bool
+        +stergeFurnizor(int id) bool
+        +getFurnizoriPaginat(int limita, int offset) List~Furnizor~
+        +getTotalFurnizori() int
     }
 
     class Depozit {
@@ -123,6 +139,10 @@ classDiagram
         +declanseazaExpediere(idCamion) bool
         +verificaIncarcareVehicul(idCamion) double
         +getIstoricService() List~InregistrareService~
+        +adaugaFurnizor(Furnizor f) bool
+        +stergeFurnizor(int id) bool
+        +getFurnizoriPaginat(int limita, int offset) List~Furnizor~
+        +getTotalFurnizori() int
     }
 ```
 
@@ -132,6 +152,7 @@ Organizarea fișierelor respectă convențiile standard C/C++:
 
 * `include/` - Conține fișierele header (`.h` / `.hpp`), expunând contractele și definițiile claselor.
 * `src/` - Conține fișierele sursă (`.cpp`), incluzând logica de domeniu, interfațarea UI și implementarea persistenței.
+* `docs/` - Conține documentația proiectului sub formă de fișier .pdf
 * `tests/` - Conține suita de teste automate pentru validarea logicii de business și a persistenței.
 * `CMakeLists.txt` - Definește directivele de asamblare și managementul dependențelor externe.
 * `build/` - Directorul de output pentru asamblarea out-of-source (exclus din controlul versiunii). *Notă: La prima rulare, motorul SQL va genera automat fișierul `.db` în acest director.*
