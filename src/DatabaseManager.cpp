@@ -13,12 +13,17 @@ DatabaseManager::DatabaseManager(const std::string& dbPath) {
     if (sqlite3_open(dbPath.c_str(), &db) != SQLITE_OK) {
         throw std::runtime_error("Nu s-a putut deschide baza de date!");
     }
+    
     creeazaTabele();
     creeazaTabelIstoric();
     creeazaTabelComenzi();
     creeazaTabelMentenanta();
+    creeazaTabelFurnizori();
 
     sqlite3_exec(db, "ALTER TABLE Camioane ADD COLUMN NumarCurse INTEGER DEFAULT 0;", nullptr, nullptr, nullptr);
+    sqlite3_exec(db, "ALTER TABLE Produse ADD COLUMN PretAchizitie REAL DEFAULT 0.0;", nullptr, nullptr, nullptr);
+    sqlite3_exec(db, "ALTER TABLE Produse ADD COLUMN PretVanzare REAL DEFAULT 0.0;", nullptr, nullptr, nullptr);
+    sqlite3_exec(db, "ALTER TABLE Produse ADD COLUMN Volum REAL DEFAULT 0.0;", nullptr, nullptr, nullptr);
 }
 
 DatabaseManager::~DatabaseManager() {
@@ -46,10 +51,6 @@ void DatabaseManager::creeazaTabele() {
         "NumarCurse INTEGER DEFAULT 0);";
         
     sqlite3_exec(db, sql, nullptr, nullptr, nullptr);
-
-    sqlite3_exec(db, "ALTER TABLE Produse ADD COLUMN PretAchizitie REAL DEFAULT 0.0;", nullptr, nullptr, nullptr);
-    sqlite3_exec(db, "ALTER TABLE Produse ADD COLUMN PretVanzare REAL DEFAULT 0.0;", nullptr, nullptr, nullptr);
-    sqlite3_exec(db, "ALTER TABLE Produse ADD COLUMN Volum REAL DEFAULT 0.0;", nullptr, nullptr, nullptr);
 }
 
 void DatabaseManager::creeazaTabelIstoric() {
@@ -85,17 +86,27 @@ void DatabaseManager::creeazaTabelMentenanta() {
     sqlite3_exec(db, sql.c_str(), nullptr, nullptr, nullptr);
 }
 
+void DatabaseManager::creeazaTabelFurnizori() {
+    std::string sql = "CREATE TABLE IF NOT EXISTS Furnizori ("
+                      "ID INTEGER PRIMARY KEY AUTOINCREMENT, "
+                      "NumeCompanie TEXT NOT NULL, "
+                      "DateContact TEXT);";
+    sqlite3_exec(db, sql.c_str(), nullptr, nullptr, nullptr);
+}
+
 void DatabaseManager::golesteBazaDeDate() {
     sqlite3_exec(db, "DROP TABLE IF EXISTS Produse;", nullptr, nullptr, nullptr);
     sqlite3_exec(db, "DROP TABLE IF EXISTS IstoricTranzactii;", nullptr, nullptr, nullptr);
     sqlite3_exec(db, "DROP TABLE IF EXISTS Comenzi;", nullptr, nullptr, nullptr);
     sqlite3_exec(db, "DROP TABLE IF EXISTS Camioane;", nullptr, nullptr, nullptr);
     sqlite3_exec(db, "DROP TABLE IF EXISTS IstoricService;", nullptr, nullptr, nullptr);
+    sqlite3_exec(db, "DROP TABLE IF EXISTS Furnizori;", nullptr, nullptr, nullptr); // <-- Drop nou
     
     creeazaTabele();
     creeazaTabelIstoric();
     creeazaTabelComenzi();
     creeazaTabelMentenanta();
+    creeazaTabelFurnizori();
 }
 
 int DatabaseManager::getNumarTotalTranzactii() {
@@ -414,16 +425,18 @@ std::vector<std::string> DatabaseManager::getCamioaneInCursa() {
 }
 
 std::vector<std::string> DatabaseManager::getCamioaneInService() {
-    std::vector<std::string> lista;
-    const char* sql = "SELECT ID FROM Camioane WHERE Status = 'Necesita Service';";
+    std::vector<std::string> masini;
+    std::string sql = "SELECT ID FROM Camioane WHERE Status = 'In Service';";
     sqlite3_stmt* stmt;
-    if (sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr) == SQLITE_OK) {
+    
+    if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr) == SQLITE_OK) {
         while (sqlite3_step(stmt) == SQLITE_ROW) {
-            lista.push_back(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0)));
+            std::string id = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0));
+            masini.push_back(id); 
         }
     }
     sqlite3_finalize(stmt);
-    return lista;
+    return masini;
 }
 
 bool DatabaseManager::salveazaComanda(const std::string& awb, int idProdus, int cantitate, const std::string& client, const std::string& adresa, const std::string& idCamion) {
@@ -523,73 +536,88 @@ bool DatabaseManager::expediazaCamion(const std::string& idCamion) {
 }
 
 bool DatabaseManager::finalizeazaCursa(const std::string& idCamion) {
-    std::string sql = "UPDATE Camioane SET NumarCurse = NumarCurse + 1, "
-                      "Status = CASE WHEN NumarCurse + 1 >= 3 THEN 'Necesita Service' ELSE 'Disponibil' END "
-                      "WHERE ID = ?;";
-    sqlite3_stmt* stmt;
-    bool succes = false;
-    if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr) == SQLITE_OK) {
-        sqlite3_bind_text(stmt, 1, idCamion.c_str(), -1, SQLITE_TRANSIENT);
-        if (sqlite3_step(stmt) == SQLITE_DONE) succes = true;
-    }
-    sqlite3_finalize(stmt);
-    return succes;
-}
-
-bool DatabaseManager::efectueazaRevizie(const std::string& idCamion, const std::string& tipInterventie) {
-    std::string sql = "UPDATE Camioane SET Status = 'Disponibil', NumarCurse = 0 WHERE ID = ?;";
-    sqlite3_stmt* stmt;
     bool succes = false;
     
-    if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr) == SQLITE_OK) {
-        sqlite3_bind_text(stmt, 1, idCamion.c_str(), -1, SQLITE_TRANSIENT);
-        if (sqlite3_step(stmt) == SQLITE_DONE) succes = true;
-    }
-    sqlite3_finalize(stmt);
-
-    if (succes) {
-        std::string sqlIstoric = "INSERT INTO IstoricService (ID_Camion, DataRevizie, TipInterventie) VALUES (?, ?, ?);";
-        sqlite3_stmt* stmtIst;
-        if (sqlite3_prepare_v2(db, sqlIstoric.c_str(), -1, &stmtIst, nullptr) == SQLITE_OK) {
-            auto acum = std::chrono::system_clock::now();
-            std::time_t timp = std::chrono::system_clock::to_time_t(acum);
-            
-            sqlite3_bind_text(stmtIst, 1, idCamion.c_str(), -1, SQLITE_TRANSIENT);
-            sqlite3_bind_int64(stmtIst, 2, timp);
-            sqlite3_bind_text(stmtIst, 3, tipInterventie.c_str(), -1, SQLITE_TRANSIENT);
-            sqlite3_step(stmtIst);
+    std::string sqlInc = "UPDATE Camioane SET NumarCurse = NumarCurse + 1 WHERE ID = ?;";
+    sqlite3_stmt* stmtInc;
+    if (sqlite3_prepare_v2(db, sqlInc.c_str(), -1, &stmtInc, nullptr) == SQLITE_OK) {
+        sqlite3_bind_text(stmtInc, 1, idCamion.c_str(), -1, SQLITE_TRANSIENT);
+        if(sqlite3_step(stmtInc) == SQLITE_DONE) {
+            succes = true;
+        } else {
+            std::cerr << "[DEBUG SQL] Eroare incrementare: " << sqlite3_errmsg(db) << "\n";
         }
-        sqlite3_finalize(stmtIst);
+    } else {
+        std::cerr << "[DEBUG SQL] Eroare prepare incrementare: " << sqlite3_errmsg(db) << "\n";
     }
-    return succes;
+    sqlite3_finalize(stmtInc);
+
+    if (!succes) return false;
+
+    int curse = 0;
+    std::string sqlCheck = "SELECT NumarCurse FROM Camioane WHERE ID = ?;";
+    sqlite3_stmt* stmtCheck;
+    if (sqlite3_prepare_v2(db, sqlCheck.c_str(), -1, &stmtCheck, nullptr) == SQLITE_OK) {
+        sqlite3_bind_text(stmtCheck, 1, idCamion.c_str(), -1, SQLITE_TRANSIENT);
+        if (sqlite3_step(stmtCheck) == SQLITE_ROW) {
+            curse = sqlite3_column_int(stmtCheck, 0);
+        }
+    }
+    sqlite3_finalize(stmtCheck);
+
+    std::string statusNou = (curse >= 3) ? "In Service" : "Disponibil";
+    
+    std::string sqlStatus = "UPDATE Camioane SET Status = ? WHERE ID = ?;";
+    sqlite3_stmt* stmtStat;
+    if (sqlite3_prepare_v2(db, sqlStatus.c_str(), -1, &stmtStat, nullptr) == SQLITE_OK) {
+        sqlite3_bind_text(stmtStat, 1, statusNou.c_str(), -1, SQLITE_TRANSIENT);
+        sqlite3_bind_text(stmtStat, 2, idCamion.c_str(), -1, SQLITE_TRANSIENT);
+        sqlite3_step(stmtStat);
+    }
+    sqlite3_finalize(stmtStat);
+
+    std::string sqlComenzi = "UPDATE Comenzi SET StatusComanda = 'Livrat' WHERE ID_Camion = ? AND StatusComanda = 'Expediat';";
+    sqlite3_stmt* stmtC;
+    if (sqlite3_prepare_v2(db, sqlComenzi.c_str(), -1, &stmtC, nullptr) == SQLITE_OK) {
+        sqlite3_bind_text(stmtC, 1, idCamion.c_str(), -1, SQLITE_TRANSIENT);
+        sqlite3_step(stmtC);
+    }
+    sqlite3_finalize(stmtC);
+
+    return true;
 }
 
 std::vector<InregistrareService> DatabaseManager::getIstoricService() {
-    std::vector<InregistrareService> istoric;
-    const char* sql = "SELECT ID_Camion, DataRevizie, TipInterventie FROM IstoricService ORDER BY ID DESC LIMIT 8;";
+   std::vector<InregistrareService> istoric;
+    
+    std::string sql = "SELECT ID_Camion, DataRevizie, TipInterventie FROM IstoricService ORDER BY ID DESC;";
     sqlite3_stmt* stmt;
     
-    int rc = sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr);
-    
-    if (rc != SQLITE_OK) {
-        std::cerr << "[EROARE SQL MENTENANTA]: " << sqlite3_errmsg(db) << "\n";
-        return istoric;
+    if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr) == SQLITE_OK) {
+        while (sqlite3_step(stmt) == SQLITE_ROW) {
+            InregistrareService inreg;
+            inreg.idCamion = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0));
+            
+            // 1. Citim timpul ca numar intreg (UNIX Timestamp)
+            time_t timestamp = sqlite3_column_int64(stmt, 1);
+            
+            // 2. Il transformam in text lizibil
+            char buffer[80];
+            struct tm* timeinfo = std::localtime(&timestamp);
+            if (timeinfo) {
+                // Formateaza data sub forma Zi-Luna-An Ora:Minut
+                std::strftime(buffer, sizeof(buffer), "%d-%m-%Y %H:%M", timeinfo);
+                inreg.data = buffer;
+            } else {
+                inreg.data = "Data Invalida";
+            }
+            
+            inreg.tipInterventie = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 2));
+            istoric.push_back(inreg);
+        }
     }
-
-    while (sqlite3_step(stmt) == SQLITE_ROW) {
-        InregistrareService rec;
-        rec.idCamion = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0));
-        std::time_t timp = sqlite3_column_int64(stmt, 1);
-        
-        char buffer[80];
-        std::strftime(buffer, sizeof(buffer), "%d-%m-%Y %H:%M", std::localtime(&timp));
-        rec.data = buffer;
-        
-        rec.tipInterventie = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 2));
-        istoric.push_back(rec);
-    }
-    
     sqlite3_finalize(stmt);
+    
     return istoric;
 }
 
@@ -644,6 +672,39 @@ std::vector<Furnizor> DatabaseManager::getFurnizori() {
     }
     sqlite3_finalize(stmt);
     return lista;
+}
+
+bool DatabaseManager::efectueazaRevizie(const std::string& idCamion, const std::string& tipInterventie) {
+    bool succes = false;
+    
+    std::string sqlUpdate = "UPDATE Camioane SET Status = 'Disponibil', NumarCurse = 0 WHERE ID = ?;";
+    sqlite3_stmt* stmtU;
+    
+    if (sqlite3_prepare_v2(db, sqlUpdate.c_str(), -1, &stmtU, nullptr) == SQLITE_OK) {
+        sqlite3_bind_text(stmtU, 1, idCamion.c_str(), -1, SQLITE_TRANSIENT);
+        if (sqlite3_step(stmtU) == SQLITE_DONE) {
+            succes = true;
+        }
+    }
+    sqlite3_finalize(stmtU);
+
+    if (succes) {
+        std::string sqlInsert = "INSERT INTO IstoricService (ID_Camion, DataRevizie, TipInterventie) VALUES (?, ?, ?);";
+        sqlite3_stmt* stmtI;
+        
+        if (sqlite3_prepare_v2(db, sqlInsert.c_str(), -1, &stmtI, nullptr) == SQLITE_OK) {
+            sqlite3_bind_text(stmtI, 1, idCamion.c_str(), -1, SQLITE_TRANSIENT);
+            
+            sqlite3_bind_int64(stmtI, 2, std::time(nullptr)); 
+            
+            sqlite3_bind_text(stmtI, 3, tipInterventie.c_str(), -1, SQLITE_TRANSIENT);
+            
+            sqlite3_step(stmtI);
+        }
+        sqlite3_finalize(stmtI);
+    }
+    
+    return succes;
 }
 
 bool DatabaseManager::stergeFurnizor(int id) {

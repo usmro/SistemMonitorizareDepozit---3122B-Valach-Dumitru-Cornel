@@ -572,7 +572,8 @@ int main() {
     });
 
     auto btn_next_istoric = Button(" Pagina Urmatoare > ", [&] {
-        int total = depozit.getNumarTotalTranzactii();
+        int total = depozit.getIstoric().size(); 
+        
         int max_pagini = (total == 0) ? 1 : (total + ELEMENTE_PE_PAGINA_I - 1) / ELEMENTE_PE_PAGINA_I;
         if (pagina_curenta_istoric < max_pagini - 1) pagina_curenta_istoric++;
     });
@@ -581,7 +582,9 @@ int main() {
 
     auto panou_istoric = Renderer(layout_istoric, [&] {
         auto lista_istoric = depozit.getIstoric(); 
-        int total_loguri = depozit.getNumarTotalTranzactii();
+        
+        // AICI ESTE SECRETUL: Folosim dimensiunea reala a vectorului incarcat
+        int total_loguri = lista_istoric.size(); 
         
         int max_pagini = (total_loguri == 0) ? 1 : (total_loguri + ELEMENTE_PE_PAGINA_I - 1) / ELEMENTE_PE_PAGINA_I;
         
@@ -609,21 +612,24 @@ int main() {
             rows.push_back({text("-"), text("-"), text("Nicio activitate inregistrata."), text("-"), text("-"), text("-"), text("-")});
         } else {
             int start_idx = pagina_curenta_istoric * ELEMENTE_PE_PAGINA_I;
-            int end_idx = std::min(start_idx + ELEMENTE_PE_PAGINA_I, total_loguri);
+            
+            int end_idx = std::min({start_idx + ELEMENTE_PE_PAGINA_I, total_loguri, (int)lista_istoric.size()});
 
-            for (int i = start_idx; i < end_idx; ++i) {
-                const auto& t = lista_istoric[i];
-                auto culoare_operatie = (t.getTipOperatie() == "VANZARE") ? color(Color::Red) : color(Color::Green);
+            if (start_idx < lista_istoric.size()) {
+                for (int i = start_idx; i < end_idx; ++i) {
+                    const auto& t = lista_istoric[i];
+                    auto culoare_operatie = (t.getTipOperatie() == "VANZARE") ? color(Color::Red) : color(Color::Green);
 
-                rows.push_back({
-                    text(" " + std::to_string(t.getIdLog()) + " "),
-                    text(" " + std::to_string(t.getIdProdus()) + " "),
-                    text(" " + t.getTipOperatie() + " ") | culoare_operatie | bold,
-                    text(" " + std::to_string(t.getCantitate()) + " "),
-                    text(" " + formateazaBani(t.getPret()) + " ") | color(Color::Yellow),
-                    text(" " + formateazaBani(t.getValoareTotala()) + " ") | color(Color::Cyan) | bold,
-                    text(" " + t.getDataOraString() + " ") | color(Color::GrayLight)
-                });
+                    rows.push_back({
+                        text(" " + std::to_string(t.getIdLog()) + " ") | center,
+                        text(" " + std::to_string(t.getIdProdus()) + " ") | center,
+                        text(" " + t.getTipOperatie() + " ") | culoare_operatie | bold | center,
+                        text(" " + std::to_string(t.getCantitate()) + " ") | center,
+                        text(" " + formateazaBani(t.getPret()) + " ") | color(Color::Yellow) | center,
+                        text(" " + formateazaBani(t.getValoareTotala()) + " ") | color(Color::Cyan) | bold | center,
+                        text(" " + t.getDataOraString() + " ") | color(Color::GrayLight) | center
+                    });
+                }
             }
         }
 
@@ -773,10 +779,16 @@ int main() {
     });
 
     auto btn_sosire = Button("Confirma Sosirea", [&] {
-        if (lista_sosiri[idx_cursa] != "- Fara vehicule pe traseu -") {
-            depozit.finalizeazaCursa(lista_sosiri[idx_cursa]);
-            mesaj_mentenanta = "Vehiculul " + lista_sosiri[idx_cursa] + " a revenit in baza.";
-            pagina_curenta_mentenanta = 0; 
+       if (lista_sosiri[idx_cursa] != "- Fara vehicule pe traseu -") {
+            bool ok = depozit.finalizeazaCursa(lista_sosiri[idx_cursa]); 
+            
+            if (ok) {
+                mesaj_mentenanta = "Vehiculul " + lista_sosiri[idx_cursa] + " a revenit in baza.";
+                idx_cursa = 0;
+                pagina_curenta_mentenanta = 0;
+            } else {
+                mesaj_mentenanta = "EROARE SQL: Cursa nu a putut fi finalizata (Verificati structura DB).";
+            }
         }
     });
 

@@ -143,6 +143,10 @@ std::string Depozit::proceseazaComandaCompleta(int idProdus, int cantitate, cons
         throw std::runtime_error("Eroare SQL: Comanda nu a putut fi salvata in tabelul Comenzi!");
     }
 
+    if (idCamion != "Fara Transport (Ridicare personala)") {
+        dbManager.expediazaCamion(idCamion); 
+    }
+
     return awb;
 }
 
